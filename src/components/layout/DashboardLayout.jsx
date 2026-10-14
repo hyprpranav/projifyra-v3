@@ -15,9 +15,9 @@ export default function DashboardLayout({ children, navItems, title, subtitle })
     navigate("/");
   };
 
-  const initials = userProfile?.fullName
-    ? userProfile.fullName.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()
-    : "U";
+  const initials = (typeof userProfile?.fullName === "string" && userProfile.fullName.trim())
+    ? userProfile.fullName.trim().split(" ").filter(Boolean).map((n) => n[0]).join("").slice(0, 2).toUpperCase()
+    : (typeof userProfile?.email === "string" && userProfile.email[0]?.toUpperCase()) || "U";
   const avatarUrl = userProfile?.photoURL || null;
 
   return (

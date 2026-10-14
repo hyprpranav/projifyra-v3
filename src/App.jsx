@@ -9,6 +9,7 @@ import ClientDashboard from "./pages/dashboard/ClientDashboard";
 import OfficerDashboard from "./pages/dashboard/OfficerDashboard";
 import AdminDashboard from "./pages/dashboard/AdminDashboard";
 import { ProtectedRoute, PublicOnlyRoute } from "./components/auth/ProtectedRoute";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 export default function App() {
   return (
@@ -48,9 +49,11 @@ export default function App() {
           <Route
             path="/dashboard/*"
             element={
-              <ProtectedRoute allowedRoles={["client"]}>
-                <ClientDashboard />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={["client"]}>
+                  <ClientDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
 
@@ -58,9 +61,11 @@ export default function App() {
           <Route
             path="/officer/*"
             element={
-              <ProtectedRoute allowedRoles={["officer", "admin"]}>
-                <OfficerDashboard />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={["officer", "admin"]}>
+                  <OfficerDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
 
@@ -68,9 +73,11 @@ export default function App() {
           <Route
             path="/admin/*"
             element={
-              <ProtectedRoute allowedRoles={["admin"]}>
-                <AdminDashboard />
-              </ProtectedRoute>
+              <ErrorBoundary>
+                <ProtectedRoute allowedRoles={["admin"]}>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              </ErrorBoundary>
             }
           />
 

@@ -246,10 +246,10 @@ export default function ClientHome() {
       <div className="flex-between" style={{ marginBottom: "var(--space-6)", flexWrap: "wrap", gap: "var(--space-4)" }}>
         <div>
           <h2 style={{ fontSize: "1.75rem", fontWeight: 800, color: "var(--color-text)" }}>
-            Welcome back, {userProfile?.fullName?.split(" ")[0] || "Student"}!
+            Welcome back, {typeof userProfile?.fullName === "string" && userProfile.fullName.trim() ? userProfile.fullName.trim().split(" ")[0] : (currentUser?.displayName?.split(" ")[0] || "Student")}!
           </h2>
           <p style={{ color: "var(--color-text-secondary)", fontSize: "14px", marginTop: "2px" }}>
-            {userProfile?.department ? `${userProfile.department} &bull; Reg: ${userProfile.registerNumber || "Verified"}` : "PROJIFYRA Project Dashboard"}
+            {userProfile?.department ? `${userProfile.department} • Reg: ${userProfile.registerNumber || "Verified"}` : "PROJIFYRA Project Dashboard"}
           </p>
         </div>
 
@@ -347,20 +347,35 @@ export default function ClientHome() {
                   </h1>
 
                   {/* Deliverables Badges */}
-                  {activeRequest.selectedServices?.length > 0 && (
+                  {Array.isArray(activeRequest.selectedServices) && activeRequest.selectedServices.length > 0 && (
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginTop: "8px" }}>
-                      {activeRequest.selectedServices.map((s) => (
-                        <span key={s} className="badge badge-primary" style={{ fontSize: "11px" }}>
-                          {s === "pcb_design" ? `PCB: ${activeRequest.pcbTool || "Altium Designer"}` :
-                           s === "simulation" ? `Simulation: ${activeRequest.simulationTool || "ANSYS HFSS"}` :
-                           s === "hardware_prototype" ? "Hardware Prototype" :
-                           s === "firmware_iot" ? "IoT Firmware" :
-                           s === "software_app" ? "Software App" : s}
-                        </span>
-                      ))}
-                      {activeRequest.addonTotal > 0 && (
+                      {activeRequest.selectedServices.map((s, sIdx) => {
+                        let label = "";
+                        if (typeof s === "string") {
+                          if (s === "pcb" || s === "pcb_design") label = `PCB: ${activeRequest.pcbTool || "Altium Designer"}`;
+                          else if (s === "simulation") label = `Simulation: ${activeRequest.simulationTool || "ANSYS HFSS"}`;
+                          else if (s === "hardware" || s === "hardware_prototype") label = "Hardware Prototype";
+                          else if (s === "firmware" || s === "firmware_iot") label = "IoT Firmware";
+                          else if (s === "software" || s === "software_app") label = "Software App";
+                          else if (s === "ppt") label = "PPT Presentation";
+                          else if (s === "document") label = "Report Documentation";
+                          else if (s === "paper") label = "Research Paper";
+                          else if (s === "mentoring") label = "Mentoring Session";
+                          else label = s;
+                        } else if (s && typeof s === "object") {
+                          label = s.name || s.title || s.id || "Deliverable";
+                        } else {
+                          label = "Deliverable";
+                        }
+                        return (
+                          <span key={typeof s === "string" ? s : sIdx} className="badge badge-primary" style={{ fontSize: "11px" }}>
+                            {label}
+                          </span>
+                        );
+                      })}
+                      {Number(activeRequest.addonTotal || 0) > 0 && (
                         <span className="badge badge-warning" style={{ fontSize: "11px" }}>
-                          Add-ons: ₹{activeRequest.addonTotal}
+                          Add-ons: ₹{Number(activeRequest.addonTotal).toLocaleString("en-IN")}
                         </span>
                       )}
                     </div>
@@ -516,7 +531,7 @@ export default function ClientHome() {
                   Total Project Cost
                 </span>
                 <div style={{ fontWeight: 800, fontSize: "1.1rem", marginTop: "2px", color: "var(--color-text)" }}>
-                  {activeRequest.projectAmount > 0 ? `₹${activeRequest.projectAmount.toLocaleString("en-IN")}` : "Awaiting Admin Pricing"}
+                  {Number(activeRequest.projectAmount || 0) > 0 ? `₹${Number(activeRequest.projectAmount).toLocaleString("en-IN")}` : "Awaiting Admin Pricing"}
                 </div>
               </div>
             </div>
@@ -525,7 +540,7 @@ export default function ClientHome() {
           {/* ======================================================== */}
           {/* SECTION: 30% ADVANCE PAYMENT GATEWAY & QR CODE           */}
           {/* ======================================================== */}
-          {activeRequest.projectAmount > 0 && (
+          {Number(activeRequest.projectAmount || 0) > 0 && (
             <div className="card" style={{ marginBottom: "var(--space-8)", border: "1px solid var(--color-border)" }}>
               <div className="card-body">
                 <div className="flex-between" style={{ flexWrap: "wrap", gap: "var(--space-4)", marginBottom: "var(--space-6)" }}>
@@ -574,18 +589,18 @@ export default function ClientHome() {
                     <div style={{ background: "var(--color-surface-hover)", padding: "16px", borderRadius: "14px", marginBottom: "var(--space-4)" }}>
                       <div className="flex-between" style={{ marginBottom: "8px" }}>
                         <span style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>Total Project Value:</span>
-                        <strong style={{ fontSize: "15px" }}>₹{activeRequest.projectAmount.toLocaleString("en-IN")}</strong>
+                        <strong style={{ fontSize: "15px" }}>₹{Number(activeRequest.projectAmount || 0).toLocaleString("en-IN")}</strong>
                       </div>
                       <div className="flex-between" style={{ marginBottom: "8px" }}>
                         <span style={{ color: "var(--color-text)", fontWeight: 700, fontSize: "14px" }}>Required 30% Initial Advance:</span>
                         <strong style={{ color: "var(--color-primary)", fontSize: "1.2rem", fontWeight: 900 }}>
-                          ₹{(activeRequest.advancePaymentRequired || Math.round(activeRequest.projectAmount * 0.3)).toLocaleString("en-IN")}
+                          ₹{Number(activeRequest.advancePaymentRequired || Math.round(Number(activeRequest.projectAmount || 0) * 0.3)).toLocaleString("en-IN")}
                         </strong>
                       </div>
                       <div className="flex-between">
                         <span style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>Remaining 70% Balance upon Completion:</span>
                         <strong style={{ fontSize: "14px" }}>
-                          ₹{Math.round(activeRequest.projectAmount * 0.7).toLocaleString("en-IN")}
+                          ₹{Math.round(Number(activeRequest.projectAmount || 0) * 0.7).toLocaleString("en-IN")}
                         </strong>
                       </div>
                     </div>
@@ -636,7 +651,11 @@ export default function ClientHome() {
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "var(--space-4)" }}>
               {ADDON_SERVICES.map((addon) => {
-                const isRequested = activeRequest.addonsRequested?.some((a) => a.id === addon.id);
+                const isRequested = Array.isArray(activeRequest.addonsRequested) && activeRequest.addonsRequested.some((a) => {
+                  if (!a) return false;
+                  if (typeof a === "string") return a === addon.id || a === addon.name;
+                  return a?.id === addon.id || a?.name === addon.name;
+                });
 
                 return (
                   <div key={addon.id} className="card card-body" style={{ display: "flex", flexDirection: "column", justifyContent: "space-between" }}>

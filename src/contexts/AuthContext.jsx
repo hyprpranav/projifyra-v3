@@ -18,10 +18,24 @@ export function AuthProvider({ children }) {
       if (firebaseUser) {
         setCurrentUser(firebaseUser);
         try {
-          const profile = await getUserProfile(firebaseUser.uid);
-          setUserProfile(profile);
+          const profile = await getUserProfile(firebaseUser.uid, firebaseUser.email);
+          setUserProfile(profile || {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            fullName: firebaseUser.displayName || firebaseUser.email?.split("@")[0] || "Student",
+            role: "client",
+            active: true,
+            approvalStatus: "approved",
+          });
         } catch {
-          setUserProfile(null);
+          setUserProfile({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            fullName: firebaseUser.displayName || "Student",
+            role: "client",
+            active: true,
+            approvalStatus: "approved",
+          });
         }
       } else {
         setCurrentUser(null);
@@ -34,7 +48,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const isMasterAdmin = currentUser?.email?.trim().toLowerCase() === MAIN_ADMIN_EMAIL.trim().toLowerCase();
-  const activeRole = isMasterAdmin ? "admin" : (userProfile?.role || null);
+  const activeRole = isMasterAdmin ? "admin" : (userProfile?.role || (currentUser ? "client" : null));
 
   const value = {
     currentUser,

@@ -39,8 +39,10 @@ function usePageTitle(route) {
 
 export default function ClientDashboard() {
   const { userProfile } = useAuth();
-  const title = "Client Portal";
-  const subtitle = `Welcome, ${userProfile?.fullName?.split(" ")[0] || "Student"}`;
+  const firstName = typeof userProfile?.fullName === "string" && userProfile.fullName.trim()
+    ? userProfile.fullName.trim().split(" ")[0]
+    : "Student";
+  const subtitle = `Welcome, ${firstName}`;
 
   return (
     <DashboardLayout navItems={CLIENT_NAV} title={title} subtitle={subtitle}>

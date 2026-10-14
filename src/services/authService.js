@@ -176,11 +176,22 @@ export async function logoutUser() {
   await signOut(auth);
 }
 
-// --- GET USER PROFILE ---
-export async function getUserProfile(uid) {
-  const snap = await getDoc(doc(db, "users", uid));
-  if (!snap.exists()) return null;
-  return snap.data();
+// --- GET USER PROFILE (Checks UID first, then email fallback) ---
+export async function getUserProfile(uid, email = "") {
+  try {
+    if (uid) {
+      const snap = await getDoc(doc(db, "users", uid));
+      if (snap.exists()) return snap.data();
+    }
+    if (email) {
+      const q = query(collection(db, "users"), where("email", "==", email.trim().toLowerCase()));
+      const snap = await getDocs(q);
+      if (!snap.empty) return snap.docs[0].data();
+    }
+  } catch (err) {
+    console.warn("Could not fetch user profile:", err);
+  }
+  return null;
 }
 
 // --- UPDATE USER PROFILE ---

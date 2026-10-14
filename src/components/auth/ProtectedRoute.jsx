@@ -26,11 +26,21 @@ export function ProtectedRoute({ children, allowedRoles = [] }) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  // Only redirect if role is explicitly mismatched and user is not already on that dashboard
   if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-    // Redirect to the correct dashboard for this role
-    if (role === "admin") return <Navigate to="/admin" replace />;
-    if (role === "officer") return <Navigate to="/officer" replace />;
-    return <Navigate to="/dashboard" replace />;
+    if (role === "admin" && !location.pathname.startsWith("/admin")) {
+      return <Navigate to="/admin" replace />;
+    }
+    if (role === "officer" && !location.pathname.startsWith("/officer")) {
+      return <Navigate to="/officer" replace />;
+    }
+    if (role === "client" && !location.pathname.startsWith("/dashboard")) {
+      return <Navigate to="/dashboard" replace />;
+    }
+    // Prevent redirecting to the same route if already on /dashboard
+    if (!location.pathname.startsWith("/dashboard")) {
+      return <Navigate to="/dashboard" replace />;
+    }
   }
 
   return children;
