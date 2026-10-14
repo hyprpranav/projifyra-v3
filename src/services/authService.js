@@ -21,18 +21,19 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, db } from "../firebase/firebase";
+import { auth, db, getSecondaryAuth } from "../firebase/firebase";
 import { MAIN_ADMIN_EMAIL } from "../config/appConfig";
 
 // --- REGISTER ---
 export async function registerClient(userData) {
   const { email, password, fullName, phone, college, department, year, registerNumber } = userData;
 
-  // Create Firebase Auth user (password is managed by Firebase — never stored in Firestore)
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  // Use secondary auth instance so primary auth session is untouched and user doesn't get auto-routed
+  const secondaryAuth = getSecondaryAuth();
+  const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
   const user = credential.user;
 
-  // Update display name
+  // Update display name on user
   await updateProfile(user, { displayName: fullName });
 
   // Determine role (case-insensitive check for Master Super Admin)
@@ -59,6 +60,9 @@ export async function registerClient(userData) {
   // Log activity
   await logActivity("client_registered", `User registered (pending idea approval): ${fullName} (${email}) [role: ${role}]`, user.uid);
 
+  // Clean up secondary auth
+  await signOut(secondaryAuth);
+
   return { user, role };
 }
 
@@ -66,7 +70,8 @@ export async function registerClient(userData) {
 export async function registerOfficer(officerData) {
   const { email, password, fullName, phone, department, specialization } = officerData;
 
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  const secondaryAuth = getSecondaryAuth();
+  const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
   const user = credential.user;
 
   await updateProfile(user, { displayName: fullName });
@@ -75,7 +80,7 @@ export async function registerOfficer(officerData) {
   await setDoc(doc(db, "users", user.uid), {
     uid: user.uid,
     fullName,
-    email,
+    email: email.trim().toLowerCase(),
     phone: phone || "",
     department: department || "",
     specialization: specialization || "",
@@ -89,8 +94,8 @@ export async function registerOfficer(officerData) {
   // Log activity
   await logActivity("officer_registered", `Officer application submitted: ${fullName} (${email})`, user.uid);
 
-  // Sign out immediately so pending officer cannot access portal before approval
-  await signOut(auth);
+  // Clean up secondary auth
+  await signOut(secondaryAuth);
 
   return { user };
 }
@@ -150,7 +155,7 @@ export async function loginUser(email, password) {
   if ((userData.role === "client" || (!userData.role && !isMasterAdmin)) && !isMasterAdmin) {
     if (userData.approvalStatus === "pending" || userData.active === false) {
       await signOut(auth);
-      throw new Error("Your project idea is currently Under Review. Your account will be activated once your idea is approved by the Admin Desk.");
+      throw new Error("Your project idea has been submitted and is currently under review by Team FIRA and our officers. We have noted your email. Once approved, you will receive an email confirmation and your account will be activated to log in and proceed further.");
     }
     if (userData.approvalStatus === "rejected") {
       await signOut(auth);

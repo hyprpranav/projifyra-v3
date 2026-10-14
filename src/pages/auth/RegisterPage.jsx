@@ -282,7 +282,7 @@ export default function RegisterPage() {
         teamName: form.teamName.trim(),
         registerNumber: form.registerNumber.trim(),
         phone: form.phone.trim(),
-        email: form.email.trim(),
+        email: form.email.trim().toLowerCase(),
         college: form.college.trim(),
         department: form.department,
         year: form.year,
@@ -301,9 +301,7 @@ export default function RegisterPage() {
         documentSize,
       });
 
-      // 4. Sign out immediately — client account is locked until Admin approves their idea!
-      await signOut(auth);
-
+      // Show success screen (session remains clean since secondaryAuth was used)
       setSuccess(true);
     } catch (err) {
       setGlobalError(friendlyAuthError(err));
@@ -316,50 +314,81 @@ export default function RegisterPage() {
   if (success) {
     return (
       <div className="auth-page">
-        <div className="auth-right" style={{ justifyContent: "center", width: "100%", maxWidth: "600px", margin: "0 auto", padding: "var(--space-6)" }}>
+        <div className="auth-right" style={{ justifyContent: "center", width: "100%", maxWidth: "620px", margin: "0 auto", padding: "var(--space-6)" }}>
           <div className="auth-form-card text-center animate-fade-up" style={{ padding: "var(--space-8)" }}>
             <div style={{
-              width: 76, height: 76, borderRadius: "50%",
+              width: 80, height: 80, borderRadius: "50%",
               background: "rgba(16, 185, 129, 0.12)", display: "flex",
               alignItems: "center", justifyContent: "center",
               margin: "0 auto var(--space-5)",
               color: "#10B981"
             }}>
-              <CheckCircle2 size={42} />
+              <CheckCircle2 size={46} />
             </div>
-            <h1 style={{ fontSize: "1.75rem", fontWeight: "800", marginBottom: "var(--space-3)", color: "var(--color-text)" }}>
-              Project Idea Submitted Successfully!
+
+            <h1 style={{ fontSize: "1.85rem", fontWeight: "800", marginBottom: "var(--space-3)", color: "var(--color-text)" }}>
+              Your Idea Has Been Submitted Successfully!
             </h1>
+
             <p style={{ color: "var(--color-text-secondary)", fontSize: "15px", lineHeight: "1.6", marginBottom: "var(--space-5)" }}>
-              Thank you, <strong>{form.fullName}</strong>. Your project idea <strong>"{form.projectTitle}"</strong> has been received and securely placed on the <strong>Admin & Officer Review Desk</strong>.
+              Thank you, <strong>{form.fullName}</strong>. Your project idea <strong>"{form.projectTitle}"</strong> has been successfully received.
             </p>
             
             <div style={{
-              background: "rgba(245, 158, 11, 0.08)",
-              border: "1px solid rgba(245, 158, 11, 0.25)",
-              borderRadius: "14px",
-              padding: "16px",
+              background: "rgba(99, 91, 255, 0.05)",
+              border: "1.5px solid rgba(99, 91, 255, 0.25)",
+              borderRadius: "16px",
+              padding: "20px",
               marginBottom: "var(--space-6)",
               textAlign: "left",
-              fontSize: "13px"
+              fontSize: "14px"
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, marginBottom: "8px", color: "var(--color-warning)" }}>
-                <span className="badge badge-warning" style={{ fontSize: "11px" }}>Account Under Review</span>
-                <span>Awaiting Admin Gatekeeper Approval</span>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px", flexWrap: "wrap", gap: "8px" }}>
+                <span className="badge badge-warning" style={{ fontSize: "12px", padding: "4px 10px", fontWeight: 700 }}>
+                  ⏳ Status: Under Review
+                </span>
+                <span style={{ fontSize: "12px", color: "var(--color-text-secondary)", fontWeight: 600 }}>
+                  Review Team: Technical Officers & Team FIRA
+                </span>
               </div>
-              <ul style={{ paddingLeft: "18px", margin: 0, color: "var(--color-text)", display: "flex", flexDirection: "column", gap: "6px", lineHeight: "1.5" }}>
-                <li>As per PROJIFYRA engineering policy, client dashboard access is activated <strong>only after Admin approval & feasibility clearance</strong>.</li>
-                <li>Our technical team is reviewing your hardware/PCB/simulation specifications and preparing your custom quotation.</li>
-                <li>Once approved, you will be able to log in with <strong>{form.email}</strong> to view your feasibility verdict, collaborate with your assigned officer, and pay the 30% upfront advance.</li>
-              </ul>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "12px", color: "var(--color-text)", lineHeight: "1.6" }}>
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                  <span style={{ color: "var(--color-primary)", fontWeight: 800, fontSize: "16px" }}>•</span>
+                  <div>
+                    <strong>Team FIRA Review:</strong> Your idea will be thoroughly viewed, evaluated, and approved by our technical officers and <strong>Team FIRA</strong>.
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                  <span style={{ color: "var(--color-primary)", fontWeight: 800, fontSize: "16px" }}>•</span>
+                  <div>
+                    <strong>Email Saved:</strong> Your email address has been safely noted: <span style={{ color: "var(--color-primary)", fontWeight: 700 }}>{form.email}</span>.
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                  <span style={{ color: "var(--color-primary)", fontWeight: 800, fontSize: "16px" }}>•</span>
+                  <div>
+                    <strong>Email Notification:</strong> Once your idea has been approved by the Admin and Team FIRA, you will receive an official confirmation email.
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "flex-start", gap: "10px" }}>
+                  <span style={{ color: "#10B981", fontWeight: 800, fontSize: "16px" }}>✓</span>
+                  <div>
+                    <strong>Log In to Proceed Further:</strong> As soon as your idea is approved and email received, you can simply log in with your credentials to access your dashboard, view your feasibility verdict, collaborate with your assigned officer, and proceed further with your project!
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-              <Link to="/" className="btn btn-primary btn-full btn-lg" style={{ height: "48px", fontSize: "15px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <Link to="/" className="btn btn-primary btn-full btn-lg" style={{ height: "48px", fontSize: "15px", fontWeight: 700 }}>
                 Return to Homepage
               </Link>
-              <Link to="/login" className="btn btn-ghost btn-sm" style={{ color: "var(--color-text-secondary)" }}>
-                Sign in once approved by Admin
+              <Link to="/login" className="btn btn-ghost btn-sm" style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>
+                Already Approved? Sign In Here
               </Link>
             </div>
           </div>

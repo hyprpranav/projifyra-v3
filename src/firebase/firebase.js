@@ -8,12 +8,21 @@ import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { FIREBASE_CONFIG } from "../config/appConfig";
 
-// Initialize Firebase app (singleton — called once)
-const app = initializeApp(FIREBASE_CONFIG);
+// Initialize primary Firebase app (singleton — called once)
+const app = getApps().length === 0 ? initializeApp(FIREBASE_CONFIG) : getApp();
 
 // Export auth, db, storage instances
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Secondary Auth instance helper for isolated account creation
+// (Prevents auto-login on primary auth, so users/applicants don't get routed away while viewing confirmation screens)
+export function getSecondaryAuth() {
+  const secondaryAppName = "projifyraSecondaryAuth";
+  const existingApp = getApps().find((a) => a.name === secondaryAppName);
+  const secondaryApp = existingApp || initializeApp(FIREBASE_CONFIG, secondaryAppName);
+  return getAuth(secondaryApp);
+}
 
 export default app;

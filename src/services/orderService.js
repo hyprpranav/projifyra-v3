@@ -77,13 +77,14 @@ export const PROGRESS_STAGES = [
 
 // --- 1. SUBMIT PROJECT REQUEST (With Idea, Components, & Cloudinary Document) ---
 export async function submitProjectRequest(clientId, formData) {
+  const cleanEmail = (formData.email || "").trim().toLowerCase();
   const ref = await addDoc(collection(db, REQUESTS_COL), {
     clientId,
     fullName: formData.fullName || "",
     teamName: formData.teamName || "",
     registerNumber: formData.registerNumber || "",
     phone: formData.phone || "",
-    email: formData.email || "",
+    email: cleanEmail,
     college: formData.college || "",
     department: formData.department || "",
     year: formData.year || "",
@@ -136,22 +137,33 @@ export async function submitProjectRequest(clientId, formData) {
   return ref.id;
 }
 
-// --- 2. GET CLIENT REQUESTS (Index-free with in-memory sort & email fallback) ---
+// --- 2. GET CLIENT REQUESTS (Index-free with in-memory sort & UID+Email union) ---
 export async function getClientRequests(clientId, clientEmail = "") {
   try {
-    let results = [];
+    const resultsMap = new Map();
+
     if (clientId) {
-      const q = query(collection(db, REQUESTS_COL), where("clientId", "==", clientId));
-      const snap = await getDocs(q);
-      results = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      try {
+        const q = query(collection(db, REQUESTS_COL), where("clientId", "==", clientId));
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => resultsMap.set(d.id, { id: d.id, ...d.data() }));
+      } catch (err) {
+        console.warn("Error querying requests by UID:", err);
+      }
     }
 
-    // Fallback: If no results found by UID and clientEmail is provided, check by email
-    if (results.length === 0 && clientEmail) {
-      const qEmail = query(collection(db, REQUESTS_COL), where("email", "==", clientEmail.trim().toLowerCase()));
-      const snapEmail = await getDocs(qEmail);
-      results = snapEmail.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (clientEmail) {
+      try {
+        const cleanEmail = clientEmail.trim().toLowerCase();
+        const qEmail = query(collection(db, REQUESTS_COL), where("email", "==", cleanEmail));
+        const snapEmail = await getDocs(qEmail);
+        snapEmail.docs.forEach((d) => resultsMap.set(d.id, { id: d.id, ...d.data() }));
+      } catch (err) {
+        console.warn("Error querying requests by email:", err);
+      }
     }
+
+    const results = Array.from(resultsMap.values());
 
     // Sort in memory by createdAt descending — zero composite index required!
     results.sort((a, b) => {
@@ -379,21 +391,33 @@ export async function createOrder(orderData) {
   return ref.id;
 }
 
-// --- 8. GET CLIENT ORDERS (Index-free with in-memory sort & email fallback) ---
+// --- 8. GET CLIENT ORDERS (Index-free with in-memory sort & UID+Email union) ---
 export async function getClientOrders(clientId, clientEmail = "") {
   try {
-    let results = [];
+    const resultsMap = new Map();
+
     if (clientId) {
-      const q = query(collection(db, ORDERS_COL), where("clientId", "==", clientId));
-      const snap = await getDocs(q);
-      results = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      try {
+        const q = query(collection(db, ORDERS_COL), where("clientId", "==", clientId));
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => resultsMap.set(d.id, { id: d.id, ...d.data() }));
+      } catch (err) {
+        console.warn("Error querying orders by UID:", err);
+      }
     }
 
-    if (results.length === 0 && clientEmail) {
-      const qEmail = query(collection(db, ORDERS_COL), where("clientEmail", "==", clientEmail.trim().toLowerCase()));
-      const snapEmail = await getDocs(qEmail);
-      results = snapEmail.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (clientEmail) {
+      try {
+        const cleanEmail = clientEmail.trim().toLowerCase();
+        const qEmail = query(collection(db, ORDERS_COL), where("clientEmail", "==", cleanEmail));
+        const snapEmail = await getDocs(qEmail);
+        snapEmail.docs.forEach((d) => resultsMap.set(d.id, { id: d.id, ...d.data() }));
+      } catch (err) {
+        console.warn("Error querying orders by email:", err);
+      }
     }
+
+    const results = Array.from(resultsMap.values());
 
     results.sort((a, b) => {
       const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
