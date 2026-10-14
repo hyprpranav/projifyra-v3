@@ -49,7 +49,7 @@ export default function ClientRequests() {
 
   const fetchRequests = () => {
     if (!currentUser?.uid) return;
-    getClientRequests(currentUser.uid)
+    getClientRequests(currentUser.uid, currentUser.email)
       .then(setRequests)
       .catch(() => setRequests([]))
       .finally(() => setLoading(false));

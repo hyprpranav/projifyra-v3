@@ -124,6 +124,26 @@ export async function rejectOfficer(uid) {
   });
 }
 
+// --- APPROVE CLIENT ACCOUNT (Activates access upon idea approval) ---
+export async function approveClient(uid) {
+  await updateDoc(doc(db, "users", uid), {
+    approvalStatus: "approved",
+    active: true,
+    approvedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
+// --- REJECT CLIENT ACCOUNT ---
+export async function rejectClient(uid) {
+  await updateDoc(doc(db, "users", uid), {
+    approvalStatus: "rejected",
+    active: false,
+    rejectedAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  });
+}
+
 // --- DELETE USER BY ID (Protected by 6-digit PIN: 927624) ---
 export async function deleteUserById(uid, enteredPin) {
   if (String(enteredPin).trim() !== MASTER_SECURITY_PIN) {

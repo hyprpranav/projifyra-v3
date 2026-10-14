@@ -136,15 +136,35 @@ export async function submitProjectRequest(clientId, formData) {
   return ref.id;
 }
 
-// --- 2. GET CLIENT REQUESTS ---
-export async function getClientRequests(clientId) {
-  const q = query(
-    collection(db, REQUESTS_COL),
-    where("clientId", "==", clientId),
-    orderBy("createdAt", "desc")
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+// --- 2. GET CLIENT REQUESTS (Index-free with in-memory sort & email fallback) ---
+export async function getClientRequests(clientId, clientEmail = "") {
+  try {
+    let results = [];
+    if (clientId) {
+      const q = query(collection(db, REQUESTS_COL), where("clientId", "==", clientId));
+      const snap = await getDocs(q);
+      results = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
+    // Fallback: If no results found by UID and clientEmail is provided, check by email
+    if (results.length === 0 && clientEmail) {
+      const qEmail = query(collection(db, REQUESTS_COL), where("email", "==", clientEmail.trim().toLowerCase()));
+      const snapEmail = await getDocs(qEmail);
+      results = snapEmail.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
+    // Sort in memory by createdAt descending — zero composite index required!
+    results.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+      return timeB - timeA;
+    });
+
+    return results;
+  } catch (err) {
+    console.error("Error fetching client requests:", err);
+    return [];
+  }
 }
 
 // --- 3. GET ALL REQUESTS (Admin & Officer pool) ---
@@ -208,7 +228,7 @@ export async function adminApproveRequest(requestId, approvalData) {
     requestId,
     clientId: approvalData.clientId || "",
     clientName: approvalData.clientName || "",
-    clientEmail: approvalData.clientEmail || "",
+    clientEmail: (approvalData.clientEmail || "").trim().toLowerCase(),
     clientPhone: approvalData.clientPhone || "",
     title: approvalData.projectTitle || "Approved Engineering Project",
     projectAmount: totalAmount,
@@ -224,7 +244,39 @@ export async function adminApproveRequest(requestId, approvalData) {
     updatedAt: serverTimestamp(),
   });
 
-  await logOrderActivity("admin_approved", `Admin approved request ${requestId} with budget ₹${totalAmount}`, "admin");
+  // CRITICAL: Activate client account in users collection upon idea approval!
+  if (approvalData.clientId) {
+    try {
+      await updateDoc(doc(db, "users", approvalData.clientId), {
+        approvalStatus: "approved",
+        active: true,
+        approvedAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.warn("Could not update user by clientId:", err);
+    }
+  }
+
+  // Also fallback: if user exists with matching clientEmail
+  if (approvalData.clientEmail) {
+    try {
+      const uQuery = query(collection(db, "users"), where("email", "==", approvalData.clientEmail.trim().toLowerCase()));
+      const uSnap = await getDocs(uQuery);
+      for (const uDoc of uSnap.docs) {
+        await updateDoc(doc(db, "users", uDoc.id), {
+          approvalStatus: "approved",
+          active: true,
+          approvedAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    } catch (err) {
+      console.warn("Could not update user by email:", err);
+    }
+  }
+
+  await logOrderActivity("admin_approved", `Admin approved request ${requestId} with budget ₹${totalAmount} and activated client account`, "admin");
 }
 
 // --- 6. ADMIN UPDATES / EDITS PROJECT DETAILS AT ANY TIME ---
@@ -327,14 +379,33 @@ export async function createOrder(orderData) {
   return ref.id;
 }
 
-export async function getClientOrders(clientId) {
-  const q = query(
-    collection(db, ORDERS_COL),
-    where("clientId", "==", clientId),
-    orderBy("createdAt", "desc")
-  );
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+// --- 8. GET CLIENT ORDERS (Index-free with in-memory sort & email fallback) ---
+export async function getClientOrders(clientId, clientEmail = "") {
+  try {
+    let results = [];
+    if (clientId) {
+      const q = query(collection(db, ORDERS_COL), where("clientId", "==", clientId));
+      const snap = await getDocs(q);
+      results = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
+    if (results.length === 0 && clientEmail) {
+      const qEmail = query(collection(db, ORDERS_COL), where("clientEmail", "==", clientEmail.trim().toLowerCase()));
+      const snapEmail = await getDocs(qEmail);
+      results = snapEmail.docs.map((d) => ({ id: d.id, ...d.data() }));
+    }
+
+    results.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+      return timeB - timeA;
+    });
+
+    return results;
+  } catch (err) {
+    console.error("Error fetching client orders:", err);
+    return [];
+  }
 }
 
 export async function getAllOrders() {

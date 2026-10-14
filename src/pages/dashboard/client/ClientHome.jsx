@@ -70,7 +70,7 @@ export default function ClientHome() {
     if (!currentUser?.uid) return;
     setLoading(true);
     try {
-      const data = await getClientRequests(currentUser.uid);
+      const data = await getClientRequests(currentUser.uid, currentUser.email);
       setRequests(data);
       // Pick first active or approved request as the hero project
       const approvedOrActive = data.find((r) => r.status === "Approved" || r.status === "In Progress" || r.status === "Completed") || data[0];

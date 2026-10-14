@@ -164,7 +164,7 @@ export default function AdminRequests() {
           hasComponents: approvalModal.hasComponents,
         });
         setMsg({
-          text: `Project approved! 30% advance requirement (₹${Math.round(total * 0.3)}) is now active on Client Dashboard.`,
+          text: `Project approved & client account activated! 30% advance requirement (₹${Math.round(total * 0.3)}) is now active on Client Dashboard.`,
           type: "success",
         });
       }
@@ -718,7 +718,11 @@ export default function AdminRequests() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary" disabled={actionLoading === approvalModal.id}>
-                  {actionLoading === approvalModal.id ? "Saving..." : "Approve & Update Client Dashboard"}
+                  {actionLoading === approvalModal.id
+                    ? "Saving..."
+                    : approvalModal.status === "Approved" || approvalModal.status === "In Progress"
+                    ? "Update Project Details"
+                    : "Approve Idea & Activate Client Account"}
                 </button>
               </div>
             </form>

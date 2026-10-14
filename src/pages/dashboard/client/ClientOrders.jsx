@@ -22,7 +22,7 @@ export default function ClientOrders() {
 
   useEffect(() => {
     if (!currentUser?.uid) return;
-    getClientOrders(currentUser.uid)
+    getClientOrders(currentUser.uid, currentUser.email)
       .then(setOrders)
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));

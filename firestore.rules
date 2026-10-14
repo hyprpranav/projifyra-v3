@@ -50,12 +50,13 @@ service cloud.firestore {
 
     // 3. Project Requests (Submitted ideas by students)
     match /projectRequests/{requestId} {
-      // Any authenticated student can submit a request
-      allow create: if isAuthenticated();
+      // Anyone (students submitting ideas, authenticated or applicants) can submit a request
+      allow create: if true;
       
-      // Student can view their own request; Admin and Officers can view all
+      // Student can view their own request (by UID or email); Admin and Officers can view all
       allow read: if isAuthenticated() && (
         resource.data.clientId == request.auth.uid || 
+        resource.data.email == request.auth.token.email ||
         isMasterAdmin() || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'officer']
       );
@@ -63,6 +64,7 @@ service cloud.firestore {
       // Student can update their pending request; Admin/Officer can update status
       allow update: if isAuthenticated() && (
         resource.data.clientId == request.auth.uid || 
+        resource.data.email == request.auth.token.email ||
         isMasterAdmin() || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'officer']
       );
@@ -73,9 +75,10 @@ service cloud.firestore {
 
     // 4. Official Project Orders (Active builds & milestones)
     match /orders/{orderId} {
-      // Student can view their own order; Admin and Officers can view all
+      // Student can view their own order (by UID or email); Admin and Officers can view all
       allow read: if isAuthenticated() && (
         resource.data.clientId == request.auth.uid || 
+        resource.data.clientEmail == request.auth.token.email ||
         isMasterAdmin() || 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'officer']
       );

@@ -7,6 +7,7 @@ import {
   getAllUsers,
   setUserActive,
   setUserRole,
+  approveClient,
   deleteUserById,
   deleteAllUsersByRole
 } from "../../../services/adminService";
@@ -81,6 +82,22 @@ export default function AdminClients() {
       setMsg({ text: `User account status updated successfully.`, type: "success" });
     } catch (err) {
       setMsg({ text: "Failed to update user status: " + err.message, type: "error" });
+    } finally {
+      setActionLoading(null);
+      setTimeout(() => setMsg({ text: "", type: "" }), 3000);
+    }
+  };
+
+  const handleApproveClient = async (uid, name) => {
+    setActionLoading(uid);
+    try {
+      await approveClient(uid);
+      setClients((prev) =>
+        prev.map((c) => (c.id === uid ? { ...c, approvalStatus: "approved", active: true } : c))
+      );
+      setMsg({ text: `Client ${name || "account"} approved and activated successfully! They can now log in.`, type: "success" });
+    } catch (err) {
+      setMsg({ text: "Failed to approve client: " + err.message, type: "error" });
     } finally {
       setActionLoading(null);
       setTimeout(() => setMsg({ text: "", type: "" }), 3000);
@@ -299,8 +316,14 @@ export default function AdminClients() {
                         </div>
                       </td>
                       <td>
-                        <span className={`badge ${isActive ? "badge-success" : "badge-danger"}`}>
-                          {isActive ? "Active" : "Suspended"}
+                        <span className={`badge ${
+                          client.approvalStatus === "pending"
+                            ? "badge-warning"
+                            : isActive
+                            ? "badge-success"
+                            : "badge-danger"
+                        }`}>
+                          {client.approvalStatus === "pending" ? "Under Review" : isActive ? "Active" : "Suspended"}
                         </span>
                       </td>
                       <td style={{ fontSize: "12px", color: "var(--color-text-secondary)" }}>
@@ -308,6 +331,19 @@ export default function AdminClients() {
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: "6px" }}>
+                          {client.approvalStatus === "pending" && (
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-primary"
+                              style={{ background: "#10B981", borderColor: "#10B981", color: "#fff" }}
+                              onClick={() => handleApproveClient(client.id, client.fullName)}
+                              disabled={actionLoading === client.id}
+                              title="Approve Client Account & Activate Dashboard Access"
+                            >
+                              <UserCheck size={13} /> Approve
+                            </button>
+                          )}
+
                           <button
                             type="button"
                             className={`btn btn-sm ${isActive ? "btn-outline" : "btn-primary"}`}

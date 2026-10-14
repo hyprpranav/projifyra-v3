@@ -43,20 +43,21 @@ export async function registerClient(userData) {
   await setDoc(doc(db, "users", user.uid), {
     uid: user.uid,
     fullName: fullName || (isMasterAdmin ? "Master Admin (hyprpranav)" : "User"),
-    email,
+    email: email.trim().toLowerCase(),
     phone: phone || "",
     college: college || "",
     department: department || "",
     year: year || "",
     registerNumber: registerNumber || "",
     role,
-    active: true,
+    approvalStatus: isMasterAdmin ? "approved" : "pending",
+    active: isMasterAdmin ? true : false,
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
   });
 
   // Log activity
-  await logActivity("client_registered", `User registered: ${fullName} (${email}) [role: ${role}]`, user.uid);
+  await logActivity("client_registered", `User registered (pending idea approval): ${fullName} (${email}) [role: ${role}]`, user.uid);
 
   return { user, role };
 }
@@ -142,6 +143,18 @@ export async function loginUser(email, password) {
     if (userData.active === false) {
       await signOut(auth);
       throw new Error("Your officer account has been deactivated. Please contact the Admin Desk.");
+    }
+  }
+
+  // Client specific approval checks (master admin is exempted)
+  if ((userData.role === "client" || (!userData.role && !isMasterAdmin)) && !isMasterAdmin) {
+    if (userData.approvalStatus === "pending" || userData.active === false) {
+      await signOut(auth);
+      throw new Error("Your project idea is currently Under Review. Your account will be activated once your idea is approved by the Admin Desk.");
+    }
+    if (userData.approvalStatus === "rejected") {
+      await signOut(auth);
+      throw new Error("Your project request was not approved. Please contact PROJIFYRA support.");
     }
   }
 

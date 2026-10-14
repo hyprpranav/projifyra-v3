@@ -8,6 +8,8 @@ import {
 import { registerClient, friendlyAuthError } from "../../services/authService";
 import { submitProjectRequest } from "../../services/orderService";
 import { uploadToCloudinary } from "../../services/cloudinaryService";
+import { signOut } from "firebase/auth";
+import { auth } from "../../firebase/firebase";
 import "../../styles/auth.css";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // Strict 5MB limit
@@ -299,6 +301,9 @@ export default function RegisterPage() {
         documentSize,
       });
 
+      // 4. Sign out immediately — client account is locked until Admin approves their idea!
+      await signOut(auth);
+
       setSuccess(true);
     } catch (err) {
       setGlobalError(friendlyAuthError(err));
@@ -323,32 +328,40 @@ export default function RegisterPage() {
               <CheckCircle2 size={42} />
             </div>
             <h1 style={{ fontSize: "1.75rem", fontWeight: "800", marginBottom: "var(--space-3)", color: "var(--color-text)" }}>
-              Idea Submitted Successfully!
+              Project Idea Submitted Successfully!
             </h1>
-            <p style={{ color: "var(--color-text-secondary)", fontSize: "15px", lineHeight: "1.6", marginBottom: "var(--space-6)" }}>
-              Welcome to PROJIFYRA, <strong>{form.fullName}</strong>. Your account has been created and your project idea <strong>"{form.projectTitle}"</strong> is now securely placed on the <strong>Admin & Officer Desk</strong>.
+            <p style={{ color: "var(--color-text-secondary)", fontSize: "15px", lineHeight: "1.6", marginBottom: "var(--space-5)" }}>
+              Thank you, <strong>{form.fullName}</strong>. Your project idea <strong>"{form.projectTitle}"</strong> has been received and securely placed on the <strong>Admin & Officer Review Desk</strong>.
             </p>
             
             <div style={{
-              background: "var(--color-surface-hover)",
-              border: "1px solid var(--color-border)",
+              background: "rgba(245, 158, 11, 0.08)",
+              border: "1px solid rgba(245, 158, 11, 0.25)",
               borderRadius: "14px",
               padding: "16px",
               marginBottom: "var(--space-6)",
               textAlign: "left",
               fontSize: "13px"
             }}>
-              <div style={{ fontWeight: 700, marginBottom: "6px", color: "var(--color-text)" }}>Next Steps:</div>
-              <ul style={{ paddingLeft: "18px", margin: 0, color: "var(--color-text-secondary)", display: "flex", flexDirection: "column", gap: "6px" }}>
-                <li>Our technical officers will review your components and problem statement.</li>
-                <li>The Admin Desk will finalize project pricing, delivery dates, and assigned officer.</li>
-                <li>Once approved, your dashboard will display live progress percentage and initial 30% advance payment details.</li>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 700, marginBottom: "8px", color: "var(--color-warning)" }}>
+                <span className="badge badge-warning" style={{ fontSize: "11px" }}>Account Under Review</span>
+                <span>Awaiting Admin Gatekeeper Approval</span>
+              </div>
+              <ul style={{ paddingLeft: "18px", margin: 0, color: "var(--color-text)", display: "flex", flexDirection: "column", gap: "6px", lineHeight: "1.5" }}>
+                <li>As per PROJIFYRA engineering policy, client dashboard access is activated <strong>only after Admin approval & feasibility clearance</strong>.</li>
+                <li>Our technical team is reviewing your hardware/PCB/simulation specifications and preparing your custom quotation.</li>
+                <li>Once approved, you will be able to log in with <strong>{form.email}</strong> to view your feasibility verdict, collaborate with your assigned officer, and pay the 30% upfront advance.</li>
               </ul>
             </div>
 
-            <Link to="/dashboard" className="btn btn-primary btn-full btn-lg" style={{ height: "50px", fontSize: "16px" }}>
-              Enter Client Dashboard
-            </Link>
+            <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+              <Link to="/" className="btn btn-primary btn-full btn-lg" style={{ height: "48px", fontSize: "15px" }}>
+                Return to Homepage
+              </Link>
+              <Link to="/login" className="btn btn-ghost btn-sm" style={{ color: "var(--color-text-secondary)" }}>
+                Sign in once approved by Admin
+              </Link>
+            </div>
           </div>
         </div>
       </div>
