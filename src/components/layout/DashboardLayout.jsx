@@ -72,7 +72,15 @@ export default function DashboardLayout({ children, navItems = [], title = "Dash
                 onClick={() => setSidebarOpen(false)}
               >
                 <span className="nav-icon" aria-hidden="true">{item.icon}</span>
-                {item.label}
+                <span className="sidebar-nav-label">{item.label}</span>
+                {item.badge !== undefined && item.badge !== null && Number(item.badge) > 0 && (
+                  <span
+                    className={`sidebar-nav-badge${item.badgeColor ? ` ${item.badgeColor}` : ""}`}
+                    aria-label={`${item.badge} notifications`}
+                  >
+                    {item.badge > 99 ? "99+" : item.badge}
+                  </span>
+                )}
               </NavLink>
             )
           )}

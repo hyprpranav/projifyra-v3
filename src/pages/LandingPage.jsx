@@ -447,15 +447,17 @@ export default function LandingPage() {
             <div className="reviews-grid">
               {reviews.map((r) => (
                 <article key={r.id} className="review-card">
-                  <StarRating rating={r.rating} />
-                  <p className="review-text">"{r.text}"</p>
+                  <StarRating rating={Number(r.rating) || 5} />
+                  <p className="review-text">"{r.text || r.comment || r.review || "Great project experience!"}"</p>
                   <div className="review-author">
                     <div className="review-author-avatar" aria-hidden="true">
-                      {r.clientName?.[0]?.toUpperCase() || "C"}
+                      {(r.clientName || r.name || "S")[0]?.toUpperCase()}
                     </div>
                     <div>
-                      <div className="review-author-name">{r.clientName || "Client"}</div>
-                      <div className="review-author-detail">{r.department || ""} {r.college || ""}</div>
+                      <div className="review-author-name">{r.clientName || r.name || "Student"}</div>
+                      <div className="review-author-detail">
+                        {r.department ? `${r.department} • ` : ""}{r.college || "Engineering Student"}
+                      </div>
                     </div>
                   </div>
                 </article>

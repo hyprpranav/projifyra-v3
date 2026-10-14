@@ -93,14 +93,16 @@ service cloud.firestore {
 
     // 5. Client Reviews & Testimonials
     match /reviews/{reviewId} {
-      // Public can see approved reviews; Admin can see all reviews
-      allow read: if resource.data.approved == true || isMasterAdmin();
+      // Public can see approved reviews; Students can see their own reviews; Admin can see all
+      allow read: if resource.data.approved == true || isMasterAdmin() || 
+        (isAuthenticated() && (resource.data.clientId == request.auth.uid || resource.data.clientEmail == request.auth.token.email));
       
       // Any authenticated student can submit a review
-      allow create: if isAuthenticated() && request.resource.data.approved == false;
+      allow create: if isAuthenticated();
       
-      // Only Master Admin can approve, hide, or delete reviews
-      allow update, delete: if isMasterAdmin();
+      // Student can edit or delete their own review; Master Admin can approve, hide, or delete reviews
+      allow update, delete: if isMasterAdmin() || 
+        (isAuthenticated() && (resource.data.clientId == request.auth.uid || resource.data.clientEmail == request.auth.token.email));
     }
 
     // 6. Global Platform Stats

@@ -1,11 +1,14 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, FolderOpen, Send, Star,
-  ShoppingBag, BarChart3, Activity, UserCog, PlusCircle,
+  ShoppingBag, BarChart3, Activity, UserCog, User,
 } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAuth } from "../../contexts/AuthContext";
+import { getAllRequests, getAllOrders, ORDER_STATUS } from "../../services/orderService";
+import { getAllReviews } from "../../services/reviewService";
+import { getAllUsers } from "../../services/adminService";
 import AdminHome from "./admin/AdminHome";
 import AdminClients from "./admin/AdminClients";
 import AdminOfficers from "./admin/AdminOfficers";
@@ -16,29 +19,89 @@ import AdminReviews from "./admin/AdminReviews";
 import AdminStats from "./admin/AdminStats";
 import AdminLogs from "./admin/AdminLogs";
 import AdminProfile from "./client/ClientProfile";
-import { User } from "lucide-react";
-
-const ADMIN_NAV = [
-  { to: "/admin", end: true, icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-  { section: "Management" },
-  { to: "/admin/clients", icon: <Users size={18} />, label: "Clients" },
-  { to: "/admin/officers", icon: <UserCog size={18} />, label: "Officers" },
-  { section: "Projects" },
-  { to: "/admin/projects", icon: <FolderOpen size={18} />, label: "Projects" },
-  { to: "/admin/requests", icon: <Send size={18} />, label: "Requests" },
-  { to: "/admin/orders", icon: <ShoppingBag size={18} />, label: "Orders" },
-  { section: "Platform" },
-  { to: "/admin/reviews", icon: <Star size={18} />, label: "Reviews" },
-  { to: "/admin/stats", icon: <BarChart3 size={18} />, label: "Statistics" },
-  { to: "/admin/logs", icon: <Activity size={18} />, label: "Activity Logs" },
-  { section: "Account" },
-  { to: "/admin/profile", icon: <User size={18} />, label: "Profile & Settings" },
-];
 
 export default function AdminDashboard() {
   const { userProfile } = useAuth();
+  const [counts, setCounts] = useState({
+    clients: 0,
+    requests: 0,
+    projects: 0,
+    orders: 0,
+    reviews: 0,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchCounts() {
+      try {
+        const [reqs, ords, revs, clients] = await Promise.all([
+          getAllRequests().catch(() => []),
+          getAllOrders().catch(() => []),
+          getAllReviews().catch(() => []),
+          getAllUsers("client").catch(() => []),
+        ]);
+
+        if (!isMounted) return;
+
+        // Pending action requests (under review, proposed, or advance submitted)
+        const pendingReqs = reqs.filter(
+          (r) =>
+            r.status === ORDER_STATUS.UNDER_REVIEW ||
+            r.status === ORDER_STATUS.OFFICER_PROPOSED ||
+            r.advancePaymentStatus === "Submitted"
+        ).length;
+
+        // Active ongoing projects (approved or in progress)
+        const activeProjects = reqs.filter(
+          (r) =>
+            r.status === ORDER_STATUS.APPROVED ||
+            r.status === ORDER_STATUS.IN_PROGRESS ||
+            r.status === ORDER_STATUS.TESTING
+        ).length;
+
+        // Active orders
+        const activeOrders = ords.filter(
+          (o) => o.status === ORDER_STATUS.IN_PROGRESS || o.status === ORDER_STATUS.TESTING
+        ).length;
+
+        // Pending moderation reviews
+        const pendingReviews = revs.filter((r) => !r.approved).length;
+
+        setCounts({
+          clients: clients.length,
+          requests: pendingReqs || reqs.length,
+          projects: activeProjects,
+          orders: activeOrders,
+          reviews: pendingReviews,
+        });
+      } catch (err) {
+        console.warn("Could not load badge counts:", err);
+      }
+    }
+
+    fetchCounts();
+    return () => { isMounted = false; };
+  }, []);
+
+  const adminNav = [
+    { to: "/admin", end: true, icon: <LayoutDashboard size={18} />, label: "Dashboard" },
+    { section: "Management" },
+    { to: "/admin/clients", icon: <Users size={18} />, label: "Clients", badge: counts.clients },
+    { to: "/admin/officers", icon: <UserCog size={18} />, label: "Officers" },
+    { section: "Projects" },
+    { to: "/admin/projects", icon: <FolderOpen size={18} />, label: "Projects", badge: counts.projects, badgeColor: "badge-purple" },
+    { to: "/admin/requests", icon: <Send size={18} />, label: "Requests", badge: counts.requests },
+    { to: "/admin/orders", icon: <ShoppingBag size={18} />, label: "Orders", badge: counts.orders },
+    { section: "Platform" },
+    { to: "/admin/reviews", icon: <Star size={18} />, label: "Reviews", badge: counts.reviews, badgeColor: "badge-amber" },
+    { to: "/admin/stats", icon: <BarChart3 size={18} />, label: "Statistics" },
+    { to: "/admin/logs", icon: <Activity size={18} />, label: "Activity Logs" },
+    { section: "Account" },
+    { to: "/admin/profile", icon: <User size={18} />, label: "Profile & Settings" },
+  ];
+
   return (
-    <DashboardLayout navItems={ADMIN_NAV} title="Admin Panel" subtitle="Main Administrator">
+    <DashboardLayout navItems={adminNav} title="Admin Panel" subtitle="Main Administrator">
       <Routes>
         <Route index element={<AdminHome />} />
         <Route path="clients" element={<AdminClients />} />

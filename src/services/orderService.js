@@ -417,6 +417,46 @@ export async function getClientOrders(clientId, clientEmail = "") {
       }
     }
 
+    // Unify with any approved or in-progress requests from projectRequests
+    try {
+      const clientReqs = await getClientRequests(clientId, clientEmail);
+      clientReqs.forEach((req) => {
+        if (
+          req.status === ORDER_STATUS.APPROVED ||
+          req.status === ORDER_STATUS.IN_PROGRESS ||
+          req.status === ORDER_STATUS.TESTING ||
+          req.status === ORDER_STATUS.COMPLETED
+        ) {
+          const alreadyExists = Array.from(resultsMap.values()).some((o) => o.requestId === req.id || o.id === req.id);
+          if (!alreadyExists) {
+            resultsMap.set(`req_${req.id}`, {
+              id: req.id,
+              requestId: req.id,
+              title: req.projectTitle || "Approved Engineering Project",
+              clientName: req.fullName || "Student",
+              clientEmail: req.email || "",
+              clientPhone: req.phone || "",
+              projectAmount: Number(req.projectAmount || 0),
+              advancePaymentRequired: Number(req.advancePaymentRequired || Math.round(Number(req.projectAmount || 0) * 0.3)),
+              advancePaymentStatus: req.advancePaymentStatus || "Pending",
+              completionPercentage: Number(req.completionPercentage || 0),
+              assignedOfficer: req.assignedOfficer || "Team",
+              assignedOfficerName: req.assignedOfficerName || "PROJIFYRA Engineering Team",
+              status: req.status,
+              selectedServices: req.selectedServices || [],
+              pcbTool: req.pcbTool || "",
+              simulationTool: req.simulationTool || "",
+              deliverySpeed: req.deliverySpeed || "normal",
+              createdAt: req.createdAt,
+              updatedAt: req.updatedAt,
+            });
+          }
+        }
+      });
+    } catch (err) {
+      console.warn("Could not merge approved requests into client orders:", err);
+    }
+
     const results = Array.from(resultsMap.values());
 
     results.sort((a, b) => {
@@ -433,9 +473,63 @@ export async function getClientOrders(clientId, clientEmail = "") {
 }
 
 export async function getAllOrders() {
-  const q = query(collection(db, ORDERS_COL), orderBy("createdAt", "desc"));
-  const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  try {
+    const resultsMap = new Map();
+    try {
+      const snap = await getDocs(collection(db, ORDERS_COL));
+      snap.docs.forEach((d) => resultsMap.set(d.id, { id: d.id, ...d.data() }));
+    } catch (e) {
+      console.warn("Could not load orders collection:", e);
+    }
+
+    try {
+      const reqs = await getAllRequests();
+      reqs.forEach((req) => {
+        if (
+          req.status === ORDER_STATUS.APPROVED ||
+          req.status === ORDER_STATUS.IN_PROGRESS ||
+          req.status === ORDER_STATUS.TESTING ||
+          req.status === ORDER_STATUS.COMPLETED
+        ) {
+          const already = Array.from(resultsMap.values()).some((o) => o.requestId === req.id || o.id === req.id);
+          if (!already) {
+            resultsMap.set(`req_${req.id}`, {
+              id: req.id,
+              requestId: req.id,
+              title: req.projectTitle || "Approved Engineering Project",
+              clientName: req.fullName || "Student",
+              clientEmail: req.email || "",
+              clientPhone: req.phone || "",
+              projectAmount: Number(req.projectAmount || 0),
+              advancePaymentRequired: Number(req.advancePaymentRequired || Math.round(Number(req.projectAmount || 0) * 0.3)),
+              advancePaymentStatus: req.advancePaymentStatus || "Pending",
+              completionPercentage: Number(req.completionPercentage || 0),
+              assignedOfficer: req.assignedOfficer || "Team",
+              assignedOfficerName: req.assignedOfficerName || "PROJIFYRA Engineering Team",
+              status: req.status,
+              stage: req.status === ORDER_STATUS.COMPLETED ? "Completed" : req.completionPercentage > 50 ? "Testing" : "Development",
+              selectedServices: req.selectedServices || [],
+              createdAt: req.createdAt,
+              updatedAt: req.updatedAt,
+            });
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("Could not merge approved requests into all orders:", e);
+    }
+
+    const list = Array.from(resultsMap.values());
+    list.sort((a, b) => {
+      const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt?.seconds ? a.createdAt.seconds * 1000 : 0);
+      const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt?.seconds ? b.createdAt.seconds * 1000 : 0);
+      return timeB - timeA;
+    });
+    return list;
+  } catch (err) {
+    console.error("Error in getAllOrders:", err);
+    return [];
+  }
 }
 
 export async function updateOrder(orderId, updates) {

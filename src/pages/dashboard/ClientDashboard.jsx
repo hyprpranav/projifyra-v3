@@ -5,6 +5,8 @@ import {
 } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAuth } from "../../contexts/AuthContext";
+import { getClientRequests, getClientOrders } from "../../services/orderService";
+import { getClientReviews } from "../../services/reviewService";
 
 // Sub-pages (lazy-style inline components or separate files)
 import ClientHome from "./client/ClientHome";
@@ -13,17 +15,6 @@ import ClientRequests from "./client/ClientRequests";
 import ClientOrders from "./client/ClientOrders";
 import ClientReviews from "./client/ClientReviews";
 import ClientProfile from "./client/ClientProfile";
-
-const CLIENT_NAV = [
-  { to: "/dashboard", end: true, icon: <LayoutDashboard size={18} />, label: "Dashboard" },
-  { section: "Projects" },
-  { to: "/dashboard/projects", icon: <FolderOpen size={18} />, label: "Browse Projects" },
-  { to: "/dashboard/requests", icon: <Send size={18} />, label: "My Requests" },
-  { to: "/dashboard/orders", icon: <ShoppingBag size={18} />, label: "My Orders" },
-  { section: "Account" },
-  { to: "/dashboard/reviews", icon: <Star size={18} />, label: "Reviews" },
-  { to: "/dashboard/profile", icon: <User size={18} />, label: "Profile" },
-];
 
 function usePageTitle(route) {
   const titles = {
@@ -38,7 +29,7 @@ function usePageTitle(route) {
 }
 
 export default function ClientDashboard() {
-  const { userProfile } = useAuth();
+  const { userProfile, currentUser } = useAuth();
   const location = useLocation();
   const title = usePageTitle(location.pathname);
   const firstName = typeof userProfile?.fullName === "string" && userProfile.fullName.trim()
@@ -46,8 +37,53 @@ export default function ClientDashboard() {
     : "Student";
   const subtitle = `Welcome, ${firstName}`;
 
+  const [counts, setCounts] = useState({
+    requests: 0,
+    orders: 0,
+    reviews: 0,
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!currentUser?.uid) return;
+
+    async function fetchClientCounts() {
+      try {
+        const [reqs, ords, revs] = await Promise.all([
+          getClientRequests(currentUser.uid, currentUser.email).catch(() => []),
+          getClientOrders(currentUser.uid, currentUser.email).catch(() => []),
+          getClientReviews(currentUser.uid, currentUser.email).catch(() => []),
+        ]);
+
+        if (!isMounted) return;
+
+        setCounts({
+          requests: reqs.length,
+          orders: ords.length,
+          reviews: revs.length,
+        });
+      } catch (err) {
+        console.warn("Could not load client counts:", err);
+      }
+    }
+
+    fetchClientCounts();
+    return () => { isMounted = false; };
+  }, [currentUser?.uid, currentUser?.email]);
+
+  const clientNav = [
+    { to: "/dashboard", end: true, icon: <LayoutDashboard size={18} />, label: "Dashboard" },
+    { section: "Projects" },
+    { to: "/dashboard/projects", icon: <FolderOpen size={18} />, label: "Browse Projects" },
+    { to: "/dashboard/requests", icon: <Send size={18} />, label: "My Requests", badge: counts.requests },
+    { to: "/dashboard/orders", icon: <ShoppingBag size={18} />, label: "My Orders", badge: counts.orders, badgeColor: "badge-purple" },
+    { section: "Account" },
+    { to: "/dashboard/reviews", icon: <Star size={18} />, label: "Reviews", badge: counts.reviews, badgeColor: "badge-amber" },
+    { to: "/dashboard/profile", icon: <User size={18} />, label: "Profile" },
+  ];
+
   return (
-    <DashboardLayout navItems={CLIENT_NAV} title={title} subtitle={subtitle}>
+    <DashboardLayout navItems={clientNav} title={title} subtitle={subtitle}>
       <Routes>
         <Route index element={<ClientHome />} />
         <Route path="projects" element={<ClientProjects />} />
