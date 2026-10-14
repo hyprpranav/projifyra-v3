@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, FolderOpen, Send, ShoppingBag, Star, User, MessageSquare,
 } from "lucide-react";
@@ -39,6 +39,8 @@ function usePageTitle(route) {
 
 export default function ClientDashboard() {
   const { userProfile } = useAuth();
+  const location = useLocation();
+  const title = usePageTitle(location.pathname);
   const firstName = typeof userProfile?.fullName === "string" && userProfile.fullName.trim()
     ? userProfile.fullName.trim().split(" ")[0]
     : "Student";

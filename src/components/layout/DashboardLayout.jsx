@@ -5,7 +5,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { logoutUser } from "../../services/authService";
 import "../../styles/dashboard.css";
 
-export default function DashboardLayout({ children, navItems, title, subtitle }) {
+export default function DashboardLayout({ children, navItems = [], title = "Dashboard", subtitle = "" }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { userProfile } = useAuth();
   const navigate = useNavigate();
@@ -100,7 +100,7 @@ export default function DashboardLayout({ children, navItems, title, subtitle })
               {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
             <div>
-              <div className="dashboard-header-title">{title}</div>
+              <div className="dashboard-header-title">{title || "Dashboard"}</div>
               {subtitle && <div className="dashboard-header-subtitle">{subtitle}</div>}
             </div>
           </div>
