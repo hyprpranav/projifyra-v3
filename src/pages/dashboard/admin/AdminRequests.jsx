@@ -3,7 +3,7 @@ import {
   Send, Search, CheckCircle2, Clock, AlertCircle, RefreshCw,
   User, Check, ChevronDown, Eye, X, DollarSign, FileText,
   ExternalLink, ShieldCheck, Edit, Sliders, Users, AlertTriangle,
-  Trash2
+  Trash2, Truck
 } from "lucide-react";
 import {
   getAllRequests,
@@ -11,6 +11,8 @@ import {
   adminUpdateRequest,
   verifyPayment,
   updateCompletionPercentage,
+  markOrderReadyForDelivery,
+  markOrderDelivered,
   ORDER_STATUS
 } from "../../../services/orderService";
 import { getAllUsers, deleteRequestById } from "../../../services/adminService";
@@ -22,6 +24,8 @@ const STATUS_BADGE = {
   "Approved": "badge-success",
   "In Progress": "badge-primary",
   "Testing": "badge-warning",
+  "Ready for Delivery": "badge-primary",
+  "Delivered": "badge-success",
   "Completed": "badge-success",
   "Cancelled": "badge-error",
 };
@@ -101,11 +105,13 @@ export default function AdminRequests() {
     const firstBid = req.officerProposals?.[0];
     const initialComp = req.componentCost || firstBid?.componentCost || (req.hasComponents === "yes" ? 0 : 350);
     const initialMake = req.makingCost || firstBid?.makingCost || 650;
-    const initialTotal = req.projectAmount || (initialComp + initialMake);
+    const initialAddon = Number(req.addonTotal || 0);
+    const initialTotal = req.projectAmount || (initialComp + initialMake + initialAddon);
 
     setApprovalForm({
       componentCost: initialComp,
       makingCost: initialMake,
+      addonTotal: initialAddon,
       projectAmount: initialTotal,
       assignedOfficer: req.assignedOfficer || firstBid?.officerId || "Team",
       assignedOfficerName: req.assignedOfficerName || firstBid?.officerName || "PROJIFYRA Engineering Team",
@@ -122,7 +128,8 @@ export default function AdminRequests() {
     setActionLoading(approvalModal.id);
     const compCost = Number(approvalForm.componentCost || 0);
     const makeCost = Number(approvalForm.makingCost || 0);
-    const total = Number(approvalForm.projectAmount || compCost + makeCost);
+    const addonCost = Number(approvalForm.addonTotal || 0);
+    const total = Number(approvalForm.projectAmount || (compCost + makeCost + addonCost));
 
     // Find officer name if specific officer selected
     let offName = "PROJIFYRA Engineering Team";
@@ -137,6 +144,7 @@ export default function AdminRequests() {
         await adminUpdateRequest(approvalModal.id, {
           componentCost: compCost,
           makingCost: makeCost,
+          addonTotal: addonCost,
           projectAmount: total,
           assignedOfficer: approvalForm.assignedOfficer,
           assignedOfficerName: offName,
@@ -155,6 +163,7 @@ export default function AdminRequests() {
           projectTitle: approvalModal.projectTitle,
           componentCost: compCost,
           makingCost: makeCost,
+          addonTotal: addonCost,
           projectAmount: total,
           assignedOfficer: approvalForm.assignedOfficer,
           assignedOfficerName: offName,
@@ -176,6 +185,34 @@ export default function AdminRequests() {
     } finally {
       setActionLoading(null);
       setTimeout(() => setMsg({ text: "", type: "" }), 5000);
+    }
+  };
+
+  const handleMarkReadyForDelivery = async (reqId) => {
+    setActionLoading(reqId);
+    try {
+      await markOrderReadyForDelivery(reqId);
+      setMsg({ text: "Project marked as Ready for Delivery!", type: "success" });
+      loadData();
+    } catch (err) {
+      setMsg({ text: "Failed to update status: " + err.message, type: "error" });
+    } finally {
+      setActionLoading(null);
+      setTimeout(() => setMsg({ text: "", type: "" }), 4000);
+    }
+  };
+
+  const handleMarkDelivered = async (reqId) => {
+    setActionLoading(reqId);
+    try {
+      await markOrderDelivered(reqId);
+      setMsg({ text: "Project marked as Delivered! Client review button is now active.", type: "success" });
+      loadData();
+    } catch (err) {
+      setMsg({ text: "Failed to update status: " + err.message, type: "error" });
+    } finally {
+      setActionLoading(null);
+      setTimeout(() => setMsg({ text: "", type: "" }), 4000);
     }
   };
 
@@ -495,6 +532,35 @@ export default function AdminRequests() {
                           </button>
                         )}
 
+                        {/* Ready for Delivery / Delivered Transitions */}
+                        {req.status === "Ready for Delivery" ? (
+                          <button
+                            type="button"
+                            className="btn btn-sm"
+                            style={{ background: "#10B981", color: "#fff", borderColor: "#10B981" }}
+                            onClick={() => handleMarkDelivered(req.id)}
+                            disabled={actionLoading === req.id}
+                            title="Mark Delivered to Client & Trigger Review Prompt"
+                          >
+                            <Truck size={13} /> Deliver
+                          </button>
+                        ) : req.status === "Delivered" ? (
+                          <span className="badge badge-success" style={{ fontSize: "10px", padding: "3px 6px" }}>
+                            ✓ Delivered
+                          </span>
+                        ) : (req.status === "Approved" || req.status === "In Progress" || (req.completionPercentage || 0) >= 100) ? (
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            style={{ color: "var(--color-primary)", borderColor: "var(--color-primary)" }}
+                            onClick={() => handleMarkReadyForDelivery(req.id)}
+                            disabled={actionLoading === req.id}
+                            title="Mark Ready for Delivery"
+                          >
+                            <Truck size={13} /> Ready
+                          </button>
+                        ) : null}
+
                         {/* Delete Request with PIN */}
                         <button
                           type="button"
@@ -593,15 +659,16 @@ export default function AdminRequests() {
                     value={approvalForm.componentCost}
                     onChange={(e) => {
                       const comp = Number(e.target.value);
+                      const total = comp + Number(approvalForm.makingCost || 0) + Number(approvalForm.addonTotal || 0);
                       setApprovalForm((f) => ({
                         ...f,
                         componentCost: comp,
-                        projectAmount: comp + Number(f.makingCost || 0)
+                        projectAmount: total
                       }));
                     }}
                   />
                   <span style={{ fontSize: "11px", color: "var(--color-text-tertiary)" }}>
-                    {approvalModal.hasComponents === "yes" ? "Client provides components" : "Components to purchase"}
+                    {approvalModal.hasComponents === "yes" ? "Client provides components (₹0)" : "Hardware parts to purchase"}
                   </span>
                 </div>
 
@@ -614,28 +681,59 @@ export default function AdminRequests() {
                     value={approvalForm.makingCost}
                     onChange={(e) => {
                       const make = Number(e.target.value);
+                      const total = Number(approvalForm.componentCost || 0) + make + Number(approvalForm.addonTotal || 0);
                       setApprovalForm((f) => ({
                         ...f,
                         makingCost: make,
-                        projectAmount: Number(f.componentCost || 0) + make
+                        projectAmount: total
                       }));
                     }}
                     required
                   />
+                  <span style={{ fontSize: "11px", color: "var(--color-text-tertiary)" }}>
+                    Engineering, circuit & software labor
+                  </span>
                 </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: "14px" }}>
+                <label className="form-label">Add-on Services Charges (PPT, Docs, etc.) (₹)</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  value={approvalForm.addonTotal}
+                  onChange={(e) => {
+                    const addon = Number(e.target.value);
+                    const total = Number(approvalForm.componentCost || 0) + Number(approvalForm.makingCost || 0) + addon;
+                    setApprovalForm((f) => ({
+                      ...f,
+                      addonTotal: addon,
+                      projectAmount: total
+                    }));
+                  }}
+                />
+                <span style={{ fontSize: "11px", color: "var(--color-text-tertiary)" }}>
+                  Auto-populated from student's selected add-ons. 100% company margin.
+                </span>
               </div>
 
               {/* Total Project Amount & 30% Advance Calculation */}
               <div style={{ background: "var(--color-primary-light)", padding: "14px 18px", borderRadius: "14px", marginBottom: "16px" }}>
                 <div className="flex-between">
-                  <span style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-primary)" }}>Final Project Amount:</span>
+                  <div>
+                    <span style={{ fontWeight: 700, fontSize: "14px", color: "var(--color-primary)" }}>Final Total Project Amount:</span>
+                    <div style={{ fontSize: "11px", color: "var(--color-text-secondary)" }}>
+                      Formula: Component (₹{approvalForm.componentCost || 0}) + Making (₹{approvalForm.makingCost || 0}) + Add-ons (₹{approvalForm.addonTotal || 0})
+                    </div>
+                  </div>
                   <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <span style={{ fontSize: "16px", fontWeight: 800, color: "var(--color-primary)" }}>₹</span>
                     <input
                       type="number"
                       min="1"
                       className="form-control"
-                      style={{ width: "120px", height: "36px", fontWeight: 800, fontSize: "16px", color: "var(--color-primary)" }}
+                      style={{ width: "130px", height: "36px", fontWeight: 800, fontSize: "16px", color: "var(--color-primary)" }}
                       value={approvalForm.projectAmount}
                       onChange={(e) => setApprovalForm((f) => ({ ...f, projectAmount: e.target.value }))}
                       required
@@ -649,8 +747,11 @@ export default function AdminRequests() {
                     ₹{Math.round(Number(approvalForm.projectAmount || 0) * 0.3).toLocaleString("en-IN")}
                   </strong>
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--color-text-secondary)", marginTop: "4px" }}>
-                  Client will see this exact 30% advance on their dashboard with the payment QR code.
+                <div className="flex-between" style={{ marginTop: "4px", fontSize: "12px", color: "var(--color-text-secondary)" }}>
+                  <span>Remaining 70% Balance upon Completion:</span>
+                  <strong>
+                    ₹{(Number(approvalForm.projectAmount || 0) - Math.round(Number(approvalForm.projectAmount || 0) * 0.3)).toLocaleString("en-IN")}
+                  </strong>
                 </div>
               </div>
 

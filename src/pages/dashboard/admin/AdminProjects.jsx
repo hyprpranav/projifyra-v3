@@ -35,6 +35,8 @@ const STATUS_BADGE = {
   "Approved": "badge-success",
   "In Progress": "badge-primary",
   "Testing": "badge-warning",
+  "Ready for Delivery": "badge-primary",
+  "Delivered": "badge-success",
   "Completed": "badge-success",
   "Cancelled": "badge-error",
 };
@@ -77,12 +79,14 @@ export default function AdminProjects() {
       setProjects(catalogData);
       setFilteredProjects(catalogData);
 
-      // Filter requests to those that are approved or in progress/testing/completed
+      // Filter requests to those that are approved or in progress/testing/ready/delivered/completed
       const approvedOrActive = requestsData.filter(
         (r) =>
           r.status === ORDER_STATUS.APPROVED ||
           r.status === ORDER_STATUS.IN_PROGRESS ||
           r.status === ORDER_STATUS.TESTING ||
+          r.status === ORDER_STATUS.READY_FOR_DELIVERY ||
+          r.status === ORDER_STATUS.DELIVERED ||
           r.status === ORDER_STATUS.COMPLETED ||
           r.projectAmount > 0
       );

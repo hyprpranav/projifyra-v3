@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, FolderOpen, Send, Star,
   ShoppingBag, BarChart3, Activity, UserCog, User,
-  HelpCircle,
+  HelpCircle, TrendingUp,
 } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAuth } from "../../contexts/AuthContext";
@@ -20,6 +20,7 @@ import AdminOrders from "./admin/AdminOrders";
 import AdminReviews from "./admin/AdminReviews";
 import AdminIssues from "./admin/AdminIssues";
 import AdminStats from "./admin/AdminStats";
+import AdminAnalytics from "./admin/AdminAnalytics";
 import AdminLogs from "./admin/AdminLogs";
 import AdminProfile from "./client/ClientProfile";
 
@@ -105,6 +106,7 @@ export default function AdminDashboard() {
     { to: "/admin/issues", icon: <HelpCircle size={18} />, label: "Client Issues", badge: counts.issues, badgeColor: "badge-amber" },
     { to: "/admin/reviews", icon: <Star size={18} />, label: "Reviews", badge: counts.reviews, badgeColor: "badge-amber" },
     { section: "Platform" },
+    { to: "/admin/analytics", icon: <TrendingUp size={18} />, label: "Profit & Analytics" },
     { to: "/admin/stats", icon: <BarChart3 size={18} />, label: "Statistics" },
     { to: "/admin/logs", icon: <Activity size={18} />, label: "Activity Logs" },
     { section: "Account" },
@@ -122,6 +124,7 @@ export default function AdminDashboard() {
         <Route path="orders" element={<AdminOrders />} />
         <Route path="issues" element={<AdminIssues />} />
         <Route path="reviews" element={<AdminReviews />} />
+        <Route path="analytics" element={<AdminAnalytics />} />
         <Route path="stats" element={<AdminStats />} />
         <Route path="logs" element={<AdminLogs />} />
         <Route path="profile" element={<AdminProfile />} />

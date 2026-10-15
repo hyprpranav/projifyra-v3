@@ -52,8 +52,17 @@ export default function AdminOrders() {
     setActionLoading(orderId);
     try {
       const updates = { stage: newStage };
-      if (newStage === "Completed") updates.status = "Completed";
-      else if (newStage === "Development" || newStage === "Testing") updates.status = "In Progress";
+      if (newStage === "Delivered" || newStage === "Delivered & Feedback") {
+        updates.status = ORDER_STATUS.DELIVERED;
+        updates.completionPercentage = 100;
+      } else if (newStage === "Ready for Delivery") {
+        updates.status = ORDER_STATUS.READY_FOR_DELIVERY;
+        updates.completionPercentage = 100;
+      } else if (newStage === "Completed") {
+        updates.status = ORDER_STATUS.COMPLETED;
+      } else if (newStage.includes("Development") || newStage.includes("Testing")) {
+        updates.status = ORDER_STATUS.IN_PROGRESS;
+      }
       await updateOrder(orderId, updates);
       setOrders((prev) =>
         prev.map((o) => (o.id === orderId ? { ...o, ...updates } : o))

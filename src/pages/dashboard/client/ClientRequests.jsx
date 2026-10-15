@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
   Send, AlertCircle, CheckCircle2, Plus, X, UploadCloud,
-  FileText, ExternalLink, ShieldAlert, Sparkles, DollarSign
+  FileText, ExternalLink, ShieldAlert, Sparkles, DollarSign, Eye
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { submitProjectRequest, getClientRequests, PROGRESS_STAGES } from "../../../services/orderService";
 import { uploadToCloudinary } from "../../../services/cloudinaryService";
+import ProjectMiniProfileModal from "../../../components/common/ProjectMiniProfileModal";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // Strict 5MB limit
 
@@ -31,6 +33,7 @@ const INITIAL_FORM = {
 
 export default function ClientRequests() {
   const { userProfile, currentUser } = useAuth();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -42,6 +45,7 @@ export default function ClientRequests() {
   const [formError, setFormError] = useState("");
   const [formSuccess, setFormSuccess] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [miniProfileProject, setMiniProfileProject] = useState(null);
 
   // File Upload State (&le; 5MB)
   const [docFile, setDocFile] = useState(null);
@@ -161,6 +165,8 @@ export default function ClientRequests() {
     "Approved": "badge-success",
     "In Progress": "badge-primary",
     "Testing": "badge-warning",
+    "Ready for Delivery": "badge-primary",
+    "Delivered": "badge-success",
     "Completed": "badge-success",
     "Cancelled": "badge-error",
   };
@@ -482,13 +488,23 @@ export default function ClientRequests() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                   {req.projectAmount > 0 && (
                     <span style={{ fontWeight: 800, fontSize: "15px", color: "var(--color-primary)" }}>
                       ₹{req.projectAmount.toLocaleString("en-IN")}
                     </span>
                   )}
                   <span className={`badge ${statusBadge[req.status] || "badge-neutral"}`}>{req.status || "Under Review"}</span>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMiniProfileProject(req);
+                    }}
+                    style={{ fontSize: "11px", padding: "4px 8px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                  >
+                    <Eye size={12} /> Details & Ledger
+                  </button>
                 </div>
               </div>
 
@@ -573,12 +589,37 @@ export default function ClientRequests() {
                       </a>
                     </div>
                   )}
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "14px" }}>
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMiniProfileProject(req);
+                      }}
+                      style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    >
+                      <Eye size={14} /> View Mini Profile & Financial Ledger
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           ))}
         </div>
       )}
+
+      {/* Mini Profile Modal */}
+      <ProjectMiniProfileModal
+        project={miniProfileProject}
+        isOpen={!!miniProfileProject}
+        onClose={() => setMiniProfileProject(null)}
+        onOpenPayment={() => {
+          setMiniProfileProject(null);
+          navigate("/dashboard");
+        }}
+        onWriteReview={() => navigate("/dashboard/reviews")}
+      />
     </div>
   );
 }

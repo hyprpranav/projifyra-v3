@@ -8,6 +8,8 @@ import {
   getAllRequests,
   submitOfficerProposal,
   updateCompletionPercentage,
+  markOrderReadyForDelivery,
+  markOrderDelivered,
   ORDER_STATUS
 } from "../../../services/orderService";
 
@@ -18,6 +20,8 @@ const STATUS_BADGE = {
   "In Progress": "badge-primary",
   "Testing": "badge-warning",
   "Completed": "badge-success",
+  "Ready for Delivery": "badge-primary",
+  "Delivered": "badge-success",
   "Cancelled": "badge-error",
 };
 
@@ -234,7 +238,7 @@ export default function OfficerRequests() {
                     )}
 
                     {/* Update Progress Button if project is in progress and assigned to this officer or team */}
-                    {(req.status === "Approved" || req.status === "In Progress" || req.status === "Testing") && isAssignedToMe && (
+                    {(req.status === "Approved" || req.status === "In Progress" || req.status === "Testing" || req.status === "Ready for Delivery") && isAssignedToMe && (
                       <button
                         className="btn btn-secondary btn-sm"
                         onClick={() => {
@@ -243,6 +247,34 @@ export default function OfficerRequests() {
                         }}
                       >
                         <Sliders size={14} /> Update Progress ({req.completionPercentage || 0}%)
+                      </button>
+                    )}
+
+                    {/* Quick Mark Ready for Delivery / Delivered for assigned officer */}
+                    {isAssignedToMe && req.completionPercentage >= 100 && req.status !== "Ready for Delivery" && req.status !== "Delivered" && (
+                      <button
+                        className="btn btn-primary btn-sm"
+                        onClick={async () => {
+                          await markOrderReadyForDelivery(req.id);
+                          setMessage({ type: "success", text: `Marked "${req.projectTitle}" as Ready for Delivery!` });
+                          fetchRequests();
+                        }}
+                      >
+                        Mark Ready for Delivery
+                      </button>
+                    )}
+
+                    {isAssignedToMe && req.status === "Ready for Delivery" && (
+                      <button
+                        className="btn btn-success btn-sm"
+                        style={{ background: "#10B981", color: "#fff" }}
+                        onClick={async () => {
+                          await markOrderDelivered(req.id);
+                          setMessage({ type: "success", text: `Project "${req.projectTitle}" marked Delivered!` });
+                          fetchRequests();
+                        }}
+                      >
+                        Mark Delivered
                       </button>
                     )}
                   </div>

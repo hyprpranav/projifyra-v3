@@ -63,6 +63,8 @@ export const ORDER_STATUS = {
   IN_PROGRESS: "In Progress",
   TESTING: "Testing",
   COMPLETED: "Completed",
+  READY_FOR_DELIVERY: "Ready for Delivery",
+  DELIVERED: "Delivered",
   CANCELLED: "Cancelled",
 };
 
@@ -71,8 +73,9 @@ export const PROGRESS_STAGES = [
   "Idea Approved",
   "Advance Payment (30%)",
   "Prototyping & Development",
-  "Testing & Demonstration",
-  "Completed & Delivered",
+  "Testing & Quality Check",
+  "Ready for Delivery",
+  "Delivered & Feedback",
 ];
 
 // --- 1. SUBMIT PROJECT REQUEST (With Idea, Components, & Cloudinary Document) ---
@@ -215,6 +218,9 @@ export async function submitOfficerProposal(requestId, proposalData) {
 export async function adminApproveRequest(requestId, approvalData) {
   const reqRef = doc(db, REQUESTS_COL, requestId);
   const totalAmount = Number(approvalData.projectAmount || 0);
+  const compCost = Number(approvalData.componentCost || 0);
+  const makeCost = Number(approvalData.makingCost || 0);
+  const addonCost = Number(approvalData.addonTotal || 0);
   const advanceAmount = Math.round(totalAmount * 0.30); // 30% upfront requirement
 
   const updates = {
@@ -222,8 +228,9 @@ export async function adminApproveRequest(requestId, approvalData) {
     assignedOfficer: approvalData.assignedOfficer || "Team",
     assignedOfficerName: approvalData.assignedOfficerName || "PROJIFYRA Engineering Team",
     projectAmount: totalAmount,
-    componentCost: Number(approvalData.componentCost || 0),
-    makingCost: Number(approvalData.makingCost || 0),
+    componentCost: compCost,
+    makingCost: makeCost,
+    addonTotal: addonCost,
     advancePaymentRequired: advanceAmount,
     advancePaymentStatus: "Pending",
     completionPercentage: 0,
@@ -245,12 +252,17 @@ export async function adminApproveRequest(requestId, approvalData) {
     clientPhone: approvalData.clientPhone || "",
     title: approvalData.projectTitle || "Approved Engineering Project",
     projectAmount: totalAmount,
+    componentCost: compCost,
+    makingCost: makeCost,
+    addonTotal: addonCost,
     advancePaymentRequired: advanceAmount,
     advancePaymentStatus: "Pending",
+    finalPaymentStatus: "Pending",
     completionPercentage: 0,
     assignedOfficer: approvalData.assignedOfficer || "Team",
     assignedOfficerName: approvalData.assignedOfficerName || "PROJIFYRA Engineering Team",
     status: ORDER_STATUS.APPROVED,
+    stage: "Idea Approved",
     hasComponents: approvalData.hasComponents || "no",
     deliverySpeed: approvalData.deliverySpeed || "normal",
     createdAt: serverTimestamp(),
@@ -327,7 +339,7 @@ export async function updateCompletionPercentage(requestId, percentage, note = "
   await updateDoc(reqRef, updates);
 }
 
-// --- 8. SUBMIT PAYMENT SCREENSHOT (30% Advance or 70% Final) ---
+// --- 8. SUBMIT PAYMENT SCREENSHOT (30% Advance, 70% Final, or 100% Full) ---
 export async function submitPaymentScreenshot(requestId, paymentData) {
   const reqRef = doc(db, REQUESTS_COL, requestId);
   const { type, screenshotUrl, transactionId, note } = paymentData;
@@ -338,7 +350,18 @@ export async function submitPaymentScreenshot(requestId, paymentData) {
     updates.advancePaymentTxnId = transactionId || "";
     updates.advancePaymentStatus = "Submitted";
     updates.advancePaymentSubmittedAt = new Date().toISOString();
+  } else if (type === "full") {
+    updates.advancePaymentScreenshot = screenshotUrl;
+    updates.advancePaymentTxnId = transactionId || "";
+    updates.advancePaymentStatus = "Submitted";
+    updates.finalPaymentScreenshot = screenshotUrl;
+    updates.finalPaymentTxnId = transactionId || "";
+    updates.finalPaymentStatus = "Submitted";
+    updates.isFullPayment = true;
+    updates.advancePaymentSubmittedAt = new Date().toISOString();
+    updates.finalPaymentSubmittedAt = new Date().toISOString();
   } else {
+    // "final"
     updates.finalPaymentScreenshot = screenshotUrl;
     updates.finalPaymentTxnId = transactionId || "";
     updates.finalPaymentStatus = "Submitted";
@@ -352,14 +375,136 @@ export async function submitPaymentScreenshot(requestId, paymentData) {
 // --- 9. ADMIN VERIFIES PAYMENT SCREENSHOT ---
 export async function verifyPayment(requestId, type = "advance") {
   const reqRef = doc(db, REQUESTS_COL, requestId);
+  const snap = await getDoc(reqRef);
+  const reqData = snap.exists() ? snap.data() : {};
   const updates = { updatedAt: serverTimestamp() };
+
   if (type === "advance") {
     updates.advancePaymentStatus = "Verified";
-    updates.status = ORDER_STATUS.IN_PROGRESS; // Work officially begins after 30% advance is verified!
-  } else {
+    if (reqData.status === ORDER_STATUS.APPROVED) {
+      updates.status = ORDER_STATUS.IN_PROGRESS; // Work officially begins after 30% advance is verified!
+    }
+  } else if (type === "full") {
+    updates.advancePaymentStatus = "Verified";
     updates.finalPaymentStatus = "Verified";
+    updates.isFullPayment = true;
+    if (Number(reqData.completionPercentage || 0) >= 100) {
+      updates.status = ORDER_STATUS.READY_FOR_DELIVERY;
+    } else {
+      updates.status = ORDER_STATUS.IN_PROGRESS;
+    }
+  } else {
+    // "final"
+    updates.finalPaymentStatus = "Verified";
+    if (Number(reqData.completionPercentage || 0) >= 100) {
+      updates.status = ORDER_STATUS.READY_FOR_DELIVERY;
+    }
   }
   await updateDoc(reqRef, updates);
+
+  // Sync to matching order document if exists
+  try {
+    const q = query(collection(db, ORDERS_COL), where("requestId", "==", requestId));
+    const oSnap = await getDocs(q);
+    for (const oDoc of oSnap.docs) {
+      await updateDoc(doc(db, ORDERS_COL, oDoc.id), updates);
+    }
+  } catch (err) {
+    console.warn("Could not sync payment verification to order document:", err);
+  }
+}
+
+// --- 9B. MARK ORDER READY FOR DELIVERY ---
+export async function markOrderReadyForDelivery(id) {
+  try {
+    const reqRef = doc(db, REQUESTS_COL, id);
+    const snap = await getDoc(reqRef);
+    if (snap.exists()) {
+      await updateDoc(reqRef, {
+        status: ORDER_STATUS.READY_FOR_DELIVERY,
+        completionPercentage: 100,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    console.warn("Could not update request to ready for delivery:", err);
+  }
+
+  try {
+    const ordRef = doc(db, ORDERS_COL, id);
+    const oSnap = await getDoc(ordRef);
+    if (oSnap.exists()) {
+      await updateDoc(ordRef, {
+        status: ORDER_STATUS.READY_FOR_DELIVERY,
+        completionPercentage: 100,
+        stage: "Ready for Delivery",
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      const q = query(collection(db, ORDERS_COL), where("requestId", "==", id));
+      const qSnap = await getDocs(q);
+      for (const d of qSnap.docs) {
+        await updateDoc(doc(db, ORDERS_COL, d.id), {
+          status: ORDER_STATUS.READY_FOR_DELIVERY,
+          completionPercentage: 100,
+          stage: "Ready for Delivery",
+          updatedAt: serverTimestamp(),
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Could not update order to ready for delivery:", err);
+  }
+
+  await logOrderActivity("order_ready_for_delivery", `Order marked Ready for Delivery: ${id}`, "system");
+}
+
+// --- 9C. MARK ORDER DELIVERED ---
+export async function markOrderDelivered(id) {
+  try {
+    const reqRef = doc(db, REQUESTS_COL, id);
+    const snap = await getDoc(reqRef);
+    if (snap.exists()) {
+      await updateDoc(reqRef, {
+        status: ORDER_STATUS.DELIVERED,
+        completionPercentage: 100,
+        deliveredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    console.warn("Could not update request to delivered:", err);
+  }
+
+  try {
+    const ordRef = doc(db, ORDERS_COL, id);
+    const oSnap = await getDoc(ordRef);
+    if (oSnap.exists()) {
+      await updateDoc(ordRef, {
+        status: ORDER_STATUS.DELIVERED,
+        completionPercentage: 100,
+        stage: "Delivered",
+        deliveredAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } else {
+      const q = query(collection(db, ORDERS_COL), where("requestId", "==", id));
+      const qSnap = await getDocs(q);
+      for (const d of qSnap.docs) {
+        await updateDoc(doc(db, ORDERS_COL, d.id), {
+          status: ORDER_STATUS.DELIVERED,
+          completionPercentage: 100,
+          stage: "Delivered",
+          deliveredAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("Could not update order to delivered:", err);
+  }
+
+  await logOrderActivity("order_delivered", `Order marked Delivered: ${id}`, "system");
 }
 
 // --- 10. REQUEST ADD-ON SERVICE ---
@@ -426,7 +571,9 @@ export async function getClientOrders(clientId, clientEmail = "") {
           req.status === ORDER_STATUS.APPROVED ||
           req.status === ORDER_STATUS.IN_PROGRESS ||
           req.status === ORDER_STATUS.TESTING ||
-          req.status === ORDER_STATUS.COMPLETED
+          req.status === ORDER_STATUS.COMPLETED ||
+          req.status === ORDER_STATUS.READY_FOR_DELIVERY ||
+          req.status === ORDER_STATUS.DELIVERED
         ) {
           const alreadyExists = Array.from(resultsMap.values()).some((o) => o.requestId === req.id || o.id === req.id);
           if (!alreadyExists) {
@@ -438,16 +585,25 @@ export async function getClientOrders(clientId, clientEmail = "") {
               clientEmail: req.email || "",
               clientPhone: req.phone || "",
               projectAmount: Number(req.projectAmount || 0),
+              componentCost: Number(req.componentCost || 0),
+              makingCost: Number(req.makingCost || 0),
+              addonTotal: Number(req.addonTotal || 0),
               advancePaymentRequired: Number(req.advancePaymentRequired || Math.round(Number(req.projectAmount || 0) * 0.3)),
               advancePaymentStatus: req.advancePaymentStatus || "Pending",
+              finalPaymentStatus: req.finalPaymentStatus || "Pending",
+              isFullPayment: req.isFullPayment || false,
+              advancePaymentScreenshot: req.advancePaymentScreenshot || "",
+              finalPaymentScreenshot: req.finalPaymentScreenshot || "",
               completionPercentage: Number(req.completionPercentage || 0),
               assignedOfficer: req.assignedOfficer || "Team",
               assignedOfficerName: req.assignedOfficerName || "PROJIFYRA Engineering Team",
               status: req.status,
+              stage: req.status === ORDER_STATUS.DELIVERED ? "Delivered" : req.status === ORDER_STATUS.READY_FOR_DELIVERY ? "Ready for Delivery" : req.status === ORDER_STATUS.COMPLETED ? "Completed" : req.completionPercentage > 50 ? "Testing" : "Development",
               selectedServices: req.selectedServices || [],
               pcbTool: req.pcbTool || "",
               simulationTool: req.simulationTool || "",
               deliverySpeed: req.deliverySpeed || "normal",
+              deliveredAt: req.deliveredAt || null,
               createdAt: req.createdAt,
               updatedAt: req.updatedAt,
             });
@@ -490,7 +646,9 @@ export async function getAllOrders() {
           req.status === ORDER_STATUS.APPROVED ||
           req.status === ORDER_STATUS.IN_PROGRESS ||
           req.status === ORDER_STATUS.TESTING ||
-          req.status === ORDER_STATUS.COMPLETED
+          req.status === ORDER_STATUS.COMPLETED ||
+          req.status === ORDER_STATUS.READY_FOR_DELIVERY ||
+          req.status === ORDER_STATUS.DELIVERED
         ) {
           const already = Array.from(resultsMap.values()).some((o) => o.requestId === req.id || o.id === req.id);
           if (!already) {
@@ -502,14 +660,22 @@ export async function getAllOrders() {
               clientEmail: req.email || "",
               clientPhone: req.phone || "",
               projectAmount: Number(req.projectAmount || 0),
+              componentCost: Number(req.componentCost || 0),
+              makingCost: Number(req.makingCost || 0),
+              addonTotal: Number(req.addonTotal || 0),
               advancePaymentRequired: Number(req.advancePaymentRequired || Math.round(Number(req.projectAmount || 0) * 0.3)),
               advancePaymentStatus: req.advancePaymentStatus || "Pending",
+              finalPaymentStatus: req.finalPaymentStatus || "Pending",
+              isFullPayment: req.isFullPayment || false,
+              advancePaymentScreenshot: req.advancePaymentScreenshot || "",
+              finalPaymentScreenshot: req.finalPaymentScreenshot || "",
               completionPercentage: Number(req.completionPercentage || 0),
               assignedOfficer: req.assignedOfficer || "Team",
               assignedOfficerName: req.assignedOfficerName || "PROJIFYRA Engineering Team",
               status: req.status,
-              stage: req.status === ORDER_STATUS.COMPLETED ? "Completed" : req.completionPercentage > 50 ? "Testing" : "Development",
+              stage: req.status === ORDER_STATUS.DELIVERED ? "Delivered" : req.status === ORDER_STATUS.READY_FOR_DELIVERY ? "Ready for Delivery" : req.status === ORDER_STATUS.COMPLETED ? "Completed" : req.completionPercentage > 50 ? "Testing" : "Development",
               selectedServices: req.selectedServices || [],
+              deliveredAt: req.deliveredAt || null,
               createdAt: req.createdAt,
               updatedAt: req.updatedAt,
             });

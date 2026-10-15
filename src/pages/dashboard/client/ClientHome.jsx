@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Send, ShoppingBag, CheckCircle2, Clock, FolderOpen,
   Cpu, Wrench, Layers, ArrowRight, UploadCloud, FileText,
   ExternalLink, QrCode, ShieldCheck, Plus, Sparkles, Check,
-  AlertCircle, X, ShieldAlert, Award, BookOpen, Video
+  AlertCircle, X, ShieldAlert, Award, BookOpen, Video, Eye,
+  Star, DollarSign
 } from "lucide-react";
 import { useAuth } from "../../../contexts/AuthContext";
 import {
@@ -17,6 +18,7 @@ import {
   ORDER_STATUS
 } from "../../../services/orderService";
 import { uploadToCloudinary } from "../../../services/cloudinaryService";
+import ProjectMiniProfileModal from "../../../components/common/ProjectMiniProfileModal";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // Strict 5MB limit
 
@@ -34,12 +36,14 @@ const AVAILABLE_SERVICES = [
 
 export default function ClientHome() {
   const { userProfile, currentUser } = useAuth();
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeRequest, setActiveRequest] = useState(null);
+  const [miniProfileProject, setMiniProfileProject] = useState(null);
 
-  // Payment Upload Modal State
-  const [paymentModal, setPaymentModal] = useState(null); // 'advance' | 'final'
+  // Payment Upload Modal State ('advance' | 'final' | 'full')
+  const [paymentModal, setPaymentModal] = useState(null);
   const [paymentFile, setPaymentFile] = useState(null);
   const [paymentTxnId, setPaymentTxnId] = useState("");
   const [paymentFileError, setPaymentFileError] = useState("");
@@ -386,23 +390,88 @@ export default function ClientHome() {
                   </p>
                 </div>
 
-                {/* Big Live Completion Percentage Ring */}
-                <div style={{ textAlign: "center", minWidth: "140px" }}>
+                {/* Big Live Completion Percentage Ring & View Profile */}
+                <div style={{ textAlign: "center", minWidth: "150px" }}>
                   <div style={{ fontSize: "2.8rem", fontWeight: 900, color: "var(--color-primary)", lineHeight: 1 }}>
                     {activeRequest.completionPercentage || 0}%
                   </div>
                   <div style={{ fontSize: "12px", fontWeight: 700, textTransform: "uppercase", color: "var(--color-text-secondary)", marginTop: "4px" }}>
                     Completed
                   </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setMiniProfileProject(activeRequest)}
+                    style={{ marginTop: "10px", width: "100%", fontSize: "11px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
+                  >
+                    <Eye size={13} /> View Details & Ledger
+                  </button>
                 </div>
               </div>
+
+              {/* Celebratory Banner for Delivered Status */}
+              {(activeRequest.status === "Delivered" || activeRequest.status === ORDER_STATUS.DELIVERED) && (
+                <div style={{
+                  marginTop: "var(--space-5)",
+                  padding: "16px 20px",
+                  background: "linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.08) 100%)",
+                  border: "1.5px solid #10B981",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: "12px"
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "#10B981", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <Check size={22} />
+                    </div>
+                    <div>
+                      <strong style={{ fontSize: "15px", color: "var(--color-text)" }}>🎉 Your project has been delivered successfully!</strong>
+                      <div style={{ fontSize: "13px", color: "var(--color-text-secondary)", marginTop: "2px" }}>
+                        Kindly share your valuable review & feedback to help upcoming engineering students and our team improve!
+                      </div>
+                    </div>
+                  </div>
+
+                  <Link to="/dashboard/reviews" className="btn btn-primary btn-sm" style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                    <Star size={15} fill="#F59E0B" color="#F59E0B" /> Share Your Review
+                  </Link>
+                </div>
+              )}
+
+              {/* Banner for Ready for Delivery Status */}
+              {(activeRequest.status === "Ready for Delivery" || activeRequest.status === ORDER_STATUS.READY_FOR_DELIVERY) && (
+                <div style={{
+                  marginTop: "var(--space-5)",
+                  padding: "16px 20px",
+                  background: "linear-gradient(135deg, rgba(99, 91, 255, 0.12) 0%, rgba(37, 99, 235, 0.08) 100%)",
+                  border: "1.5px solid var(--color-primary)",
+                  borderRadius: "14px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "12px"
+                }}>
+                  <div style={{ width: 40, height: 40, borderRadius: "50%", background: "var(--color-primary)", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    <Award size={22} />
+                  </div>
+                  <div>
+                    <strong style={{ fontSize: "15px", color: "var(--color-text)" }}>📦 100% Completed & Ready for Delivery!</strong>
+                    <div style={{ fontSize: "13px", color: "var(--color-text-secondary)", marginTop: "2px" }}>
+                      Our engineering team has verified your hardware & code. Your project is ready for delivery / pickup.
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Animated Progress Bar */}
               <div style={{ marginTop: "var(--space-6)" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", fontSize: "12px", fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: "6px" }}>
                   <span>Development Stage</span>
                   <span style={{ color: "var(--color-primary)" }}>
-                    {activeRequest.completionPercentage >= 100
+                    {activeRequest.status === "Delivered"
+                      ? "Project Officially Delivered"
+                      : activeRequest.status === "Ready for Delivery" || activeRequest.completionPercentage >= 100
                       ? "100% — Project Completed & Ready for Delivery"
                       : activeRequest.completionPercentage >= 75
                       ? "75% — Testing & Quality Check"
@@ -538,103 +607,263 @@ export default function ClientHome() {
           </div>
 
           {/* ======================================================== */}
+          {/* ======================================================== */}
           {/* SECTION: 30% ADVANCE PAYMENT GATEWAY & QR CODE           */}
           {/* ======================================================== */}
-          {Number(activeRequest.projectAmount || 0) > 0 && (
-            <div className="card" style={{ marginBottom: "var(--space-8)", border: "1px solid var(--color-border)" }}>
-              <div className="card-body">
-                <div className="flex-between" style={{ flexWrap: "wrap", gap: "var(--space-4)", marginBottom: "var(--space-6)" }}>
-                  <div>
-                    <h3 style={{ fontSize: "1.3rem", fontWeight: 800, color: "var(--color-text)" }}>
-                      Payment Milestones (30% Upfront Requirement)
-                    </h3>
-                    <p style={{ color: "var(--color-text-secondary)", fontSize: "14px", marginTop: "2px" }}>
-                      As per PROJIFYRA policy, work officially begins after the 30% initial advance is confirmed.
-                    </p>
-                  </div>
+          {Number(activeRequest.projectAmount || 0) > 0 && (() => {
+            const total = Number(activeRequest.projectAmount || 0);
+            const comp = Number(activeRequest.componentCost || 0);
+            const addon = Number(activeRequest.addonTotal || 0);
+            const make = Number(activeRequest.makingCost || (total > 0 ? total - comp - addon : 0));
+            const advance = Number(activeRequest.advancePaymentRequired || Math.round(total * 0.3));
+            const balance = Math.max(0, total - advance);
 
-                  <span className={`badge ${
-                    activeRequest.advancePaymentStatus === "Verified"
-                      ? "badge-success"
-                      : activeRequest.advancePaymentStatus === "Submitted"
-                      ? "badge-warning"
-                      : "badge-error"
-                  }`} style={{ fontSize: "13px", padding: "6px 14px" }}>
-                    {activeRequest.advancePaymentStatus === "Verified"
-                      ? "✓ 30% Advance Verified & Active"
-                      : activeRequest.advancePaymentStatus === "Submitted"
-                      ? "⏳ Screenshot Submitted — Verifying"
-                      : "30% Advance Pending"}
-                  </span>
+            const isAdvVerified = activeRequest.advancePaymentStatus === "Verified";
+            const isFinVerified = activeRequest.finalPaymentStatus === "Verified" || activeRequest.isFullPayment;
+            const isAdvSubmitted = activeRequest.advancePaymentStatus === "Submitted";
+            const isFinSubmitted = activeRequest.finalPaymentStatus === "Submitted";
+
+            return (
+              <div className="card" style={{ marginBottom: "var(--space-8)", border: "1px solid var(--color-border)", overflow: "hidden" }}>
+                {/* Step 2 Callout Header */}
+                <div style={{
+                  background: isAdvVerified
+                    ? "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(5, 150, 105, 0.04) 100%)"
+                    : "linear-gradient(135deg, rgba(99, 91, 255, 0.1) 0%, rgba(37, 99, 235, 0.06) 100%)",
+                  padding: "18px 24px",
+                  borderBottom: "1px solid var(--color-border)"
+                }}>
+                  <div className="flex-between" style={{ flexWrap: "wrap", gap: "10px" }}>
+                    <div>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "4px" }}>
+                        <span className="badge badge-primary" style={{ fontSize: "11px", fontWeight: 800 }}>
+                          {isAdvVerified ? "Step 2: Prototyping Active" : "Step 2: Next Process Required"}
+                        </span>
+                        <span className={`badge ${
+                          isFinVerified ? "badge-success" :
+                          isAdvVerified ? "badge-success" :
+                          isAdvSubmitted ? "badge-warning" : "badge-error"
+                        }`}>
+                          {isFinVerified ? "✓ Fully Cleared (100%)" :
+                           isAdvVerified ? "✓ 30% Advance Verified" :
+                           isAdvSubmitted ? "⏳ Advance Under Verification" : "30% Initial Advance Required"}
+                        </span>
+                      </div>
+
+                      <h3 style={{ fontSize: "1.35rem", fontWeight: 800, color: "var(--color-text)", margin: 0 }}>
+                        {isAdvVerified
+                          ? "Prototyping & Development in Progress"
+                          : "Action Required: Pay 30% Initial Advance to Start Prototyping"}
+                      </h3>
+                      <p style={{ color: "var(--color-text-secondary)", fontSize: "13px", marginTop: "4px", margin: "4px 0 0" }}>
+                        {isAdvVerified
+                          ? "Your 30% initial advance is confirmed. Components are procured and assembly is in progress."
+                          : "Your project idea is approved! To begin component procurement, schematic design, and code development, please pay the 30% advance."}
+                      </p>
+                    </div>
+
+                    <button
+                      className="btn btn-outline btn-sm"
+                      onClick={() => setMiniProfileProject(activeRequest)}
+                      style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+                    >
+                      <Eye size={14} /> View Details & Mini Profile
+                    </button>
+                  </div>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "var(--space-6)", alignItems: "center" }}>
-                  {/* Left: QR Code from public/payment_QR.png */}
-                  <div style={{ textAlign: "center", padding: "16px", background: "var(--color-bg)", borderRadius: "16px", border: "1px solid var(--color-border)" }}>
-                    <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "10px", color: "var(--color-text)" }}>
-                      Scan UPI QR to Pay
+                <div className="card-body">
+                  {/* 100% Money-Back & Free Project Guarantee Reassurance Box */}
+                  <div style={{
+                    background: "linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(99, 91, 255, 0.06) 100%)",
+                    border: "1.5px solid rgba(16, 185, 129, 0.35)",
+                    borderRadius: "14px",
+                    padding: "16px 18px",
+                    marginBottom: "var(--space-6)",
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: "14px"
+                  }}>
+                    <div style={{ width: 40, height: 40, borderRadius: "50%", background: "rgba(16, 185, 129, 0.18)", color: "#10B981", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <ShieldCheck size={24} />
                     </div>
-                    <img
-                      src="/payment_QR.png"
-                      alt="PROJIFYRA Payment QR"
-                      style={{ width: "190px", height: "190px", objectFit: "contain", borderRadius: "12px", background: "#fff", padding: "8px", boxShadow: "var(--shadow-sm)" }}
-                    />
-                    <div style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginTop: "10px", fontWeight: 600 }}>
-                      UPI / GPay / PhonePe / Paytm
+                    <div>
+                      <div style={{ fontWeight: 800, fontSize: "14px", color: "var(--color-text)" }}>
+                        PROJIFYRA 100% Delivery Assurance & Money-Back Guarantee
+                      </div>
+                      <p style={{ fontSize: "13px", color: "var(--color-text-secondary)", lineHeight: "1.5", marginTop: "4px", margin: "4px 0 0" }}>
+                        Since you are paying the 30% initial advance, our team guarantees full commitment. If our engineering team is unable to complete or deliver your project for any unforeseen technical reason, your 30% advance will be <strong>100% refunded immediately</strong> or your next project will be developed <strong>completely FREE of charge</strong>. We stand by our promise to your academic and engineering excellence.
+                      </p>
                     </div>
                   </div>
 
-                  {/* Right: Payment Details & Upload Trigger */}
-                  <div>
-                    <div style={{ background: "var(--color-surface-hover)", padding: "16px", borderRadius: "14px", marginBottom: "var(--space-4)" }}>
-                      <div className="flex-between" style={{ marginBottom: "8px" }}>
-                        <span style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>Total Project Value:</span>
-                        <strong style={{ fontSize: "15px" }}>₹{Number(activeRequest.projectAmount || 0).toLocaleString("en-IN")}</strong>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "var(--space-6)", alignItems: "center" }}>
+                    {/* Left: QR Code */}
+                    <div style={{ textAlign: "center", padding: "16px", background: "var(--color-bg)", borderRadius: "16px", border: "1px solid var(--color-border)" }}>
+                      <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "10px", color: "var(--color-text)" }}>
+                        Scan UPI QR to Pay
                       </div>
-                      <div className="flex-between" style={{ marginBottom: "8px" }}>
-                        <span style={{ color: "var(--color-text)", fontWeight: 700, fontSize: "14px" }}>Required 30% Initial Advance:</span>
-                        <strong style={{ color: "var(--color-primary)", fontSize: "1.2rem", fontWeight: 900 }}>
-                          ₹{Number(activeRequest.advancePaymentRequired || Math.round(Number(activeRequest.projectAmount || 0) * 0.3)).toLocaleString("en-IN")}
-                        </strong>
-                      </div>
-                      <div className="flex-between">
-                        <span style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>Remaining 70% Balance upon Completion:</span>
-                        <strong style={{ fontSize: "14px" }}>
-                          ₹{Math.round(Number(activeRequest.projectAmount || 0) * 0.7).toLocaleString("en-IN")}
-                        </strong>
+                      <img
+                        src="/payment_QR.png"
+                        alt="PROJIFYRA Payment QR"
+                        style={{ width: "190px", height: "190px", objectFit: "contain", borderRadius: "12px", background: "#fff", padding: "8px", boxShadow: "var(--shadow-sm)" }}
+                      />
+                      <div style={{ fontSize: "12px", color: "var(--color-text-secondary)", marginTop: "10px", fontWeight: 600 }}>
+                        UPI / GPay / PhonePe / Paytm / Any Bank App
                       </div>
                     </div>
 
-                    {activeRequest.advancePaymentStatus === "Verified" ? (
-                      <div style={{ padding: "12px 16px", background: "rgba(16, 185, 129, 0.12)", color: "#10B981", borderRadius: "12px", display: "flex", alignItems: "center", gap: "10px", fontWeight: 700, fontSize: "14px" }}>
-                        <CheckCircle2 size={20} />
-                        Your 30% advance has been verified. The team is actively developing your project!
+                    {/* Right: Transparent Mathematical Ledger */}
+                    <div>
+                      <div style={{ background: "var(--color-surface-hover)", padding: "18px", borderRadius: "14px", marginBottom: "var(--space-4)", border: "1px solid var(--color-border)" }}>
+                        {/* 3 Components Breakdown */}
+                        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "8px", paddingBottom: "12px", borderBottom: "1px dashed var(--color-border)", marginBottom: "12px", fontSize: "12px" }}>
+                          <div>
+                            <span style={{ color: "var(--color-text-secondary)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>Components</span>
+                            <div style={{ fontWeight: 800, fontSize: "13px", marginTop: "2px" }}>₹{comp.toLocaleString("en-IN")}</div>
+                          </div>
+                          <div>
+                            <span style={{ color: "var(--color-text-secondary)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>Development</span>
+                            <div style={{ fontWeight: 800, fontSize: "13px", marginTop: "2px" }}>₹{make.toLocaleString("en-IN")}</div>
+                          </div>
+                          <div>
+                            <span style={{ color: "var(--color-text-secondary)", fontSize: "11px", fontWeight: 700, textTransform: "uppercase" }}>Add-ons</span>
+                            <div style={{ fontWeight: 800, fontSize: "13px", marginTop: "2px", color: "var(--color-warning)" }}>₹{addon.toLocaleString("en-IN")}</div>
+                          </div>
+                        </div>
+
+                        {/* Total Quoted */}
+                        <div className="flex-between" style={{ marginBottom: "10px" }}>
+                          <span style={{ color: "var(--color-text-secondary)", fontSize: "13px" }}>Total Quoted Value (Comp + Dev + Addons):</span>
+                          <strong style={{ fontSize: "16px", color: "var(--color-text)" }}>₹{total.toLocaleString("en-IN")}</strong>
+                        </div>
+
+                        {/* 30% Advance Requirement */}
+                        <div className="flex-between" style={{ marginBottom: "10px" }}>
+                          <span style={{ color: "var(--color-text)", fontWeight: 700, fontSize: "13px" }}>Required 30% Initial Advance:</span>
+                          <strong style={{ color: "var(--color-primary)", fontSize: "1.2rem", fontWeight: 900 }}>
+                            ₹{advance.toLocaleString("en-IN")}
+                          </strong>
+                        </div>
+
+                        {/* Equation: Total - Paid = Balance */}
+                        <div style={{
+                          background: isAdvVerified ? "rgba(16, 185, 129, 0.08)" : "var(--color-bg)",
+                          border: `1px solid ${isAdvVerified ? "rgba(16, 185, 129, 0.3)" : "var(--color-border)"}`,
+                          padding: "10px 12px",
+                          borderRadius: "10px",
+                          fontSize: "12px"
+                        }}>
+                          {isFinVerified ? (
+                            <div style={{ color: "var(--color-success)", fontWeight: 700 }}>
+                              ✓ Full project amount of ₹{total.toLocaleString("en-IN")} has been completely paid!
+                            </div>
+                          ) : isAdvVerified ? (
+                            <div>
+                              <div style={{ color: "var(--color-success)", fontWeight: 700, marginBottom: "4px" }}>
+                                ✓ You have already paid ₹{advance.toLocaleString("en-IN")}.
+                              </div>
+                              <div className="flex-between" style={{ fontWeight: 700 }}>
+                                <span>Remaining 70% Balance to Pay:</span>
+                                <span style={{ fontSize: "14px", color: "var(--color-primary)" }}>₹{balance.toLocaleString("en-IN")}</span>
+                              </div>
+                              <div style={{ fontSize: "10px", color: "var(--color-text-secondary)", marginTop: "2px" }}>
+                                Formula: Total (₹{total}) − Paid (₹{advance}) = Outstanding Balance (₹{balance})
+                              </div>
+                            </div>
+                          ) : (
+                            <div>
+                              <div className="flex-between">
+                                <span style={{ color: "var(--color-text-secondary)" }}>Remaining 70% Balance upon Completion:</span>
+                                <strong>₹{balance.toLocaleString("en-IN")}</strong>
+                              </div>
+                              <div style={{ fontSize: "11px", color: "var(--color-text-tertiary)", marginTop: "4px" }}>
+                                Pay 30% now (₹{advance}) to activate prototyping.
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ) : activeRequest.advancePaymentStatus === "Submitted" ? (
-                      <div style={{ padding: "12px 16px", background: "rgba(245, 158, 11, 0.12)", color: "#D97706", borderRadius: "12px", fontSize: "13px" }}>
-                        <div style={{ fontWeight: 700, marginBottom: "4px" }}>Screenshot Submitted for Verification</div>
-                        <div>Our admin desk is checking your transaction. Work begins immediately upon confirmation.</div>
-                      </div>
-                    ) : (
-                      <div>
-                        <button
-                          className="btn btn-primary btn-lg btn-full"
-                          onClick={() => {
-                            setPaymentModal("advance");
-                            setPaymentFile(null);
-                            setPaymentTxnId("");
-                            setPaymentFileError("");
-                          }}
-                        >
-                          <UploadCloud size={18} /> Upload 30% Advance Screenshot (&le; 5MB)
-                        </button>
-                      </div>
-                    )}
+
+                      {/* Payment Verification Status or Action Buttons (Meesho / Amazon Flexible Style) */}
+                      {isFinVerified ? (
+                        <div style={{ padding: "12px 16px", background: "rgba(16, 185, 129, 0.12)", color: "#10B981", borderRadius: "12px", display: "flex", alignItems: "center", gap: "10px", fontWeight: 700, fontSize: "14px" }}>
+                          <CheckCircle2 size={20} />
+                          Full 100% payment verified. Zero balance remaining!
+                        </div>
+                      ) : isAdvVerified ? (
+                        <div>
+                          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                            {/* Option A: Pay Remaining 70% Balance */}
+                            <button
+                              className="btn btn-primary"
+                              onClick={() => {
+                                setPaymentModal("final");
+                                setPaymentFile(null);
+                                setPaymentTxnId("");
+                                setPaymentFileError("");
+                              }}
+                              style={{ flex: 1, minWidth: "180px", justifyContent: "center" }}
+                            >
+                              <UploadCloud size={16} /> Pay Remaining Balance (₹{balance})
+                            </button>
+
+                            {/* Option B: Flexible Full Payment anytime */}
+                            <button
+                              className="btn btn-outline"
+                              onClick={() => {
+                                setPaymentModal("full");
+                                setPaymentFile(null);
+                                setPaymentTxnId("");
+                                setPaymentFileError("");
+                              }}
+                              style={{ flex: 1, minWidth: "180px", justifyContent: "center" }}
+                            >
+                              Pay Full Amount Anytime
+                            </button>
+                          </div>
+                        </div>
+                      ) : isAdvSubmitted ? (
+                        <div style={{ padding: "12px 16px", background: "rgba(245, 158, 11, 0.12)", color: "#D97706", borderRadius: "12px", fontSize: "13px" }}>
+                          <div style={{ fontWeight: 700, marginBottom: "4px" }}>30% Advance Screenshot Under Verification</div>
+                          <div>Our admin desk is checking your transaction. Work begins immediately upon confirmation.</div>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
+                          <button
+                            className="btn btn-primary btn-lg"
+                            onClick={() => {
+                              setPaymentModal("advance");
+                              setPaymentFile(null);
+                              setPaymentTxnId("");
+                              setPaymentFileError("");
+                            }}
+                            style={{ flex: 1, minWidth: "200px", justifyContent: "center" }}
+                          >
+                            <UploadCloud size={18} /> Upload 30% Advance Screenshot (₹{advance})
+                          </button>
+
+                          {/* Flexible Full Payment like Amazon/Meesho */}
+                          <button
+                            className="btn btn-outline"
+                            onClick={() => {
+                              setPaymentModal("full");
+                              setPaymentFile(null);
+                              setPaymentTxnId("");
+                              setPaymentFileError("");
+                            }}
+                            style={{ flex: 1, minWidth: "180px", justifyContent: "center" }}
+                          >
+                            Pay Full 100% Amount (₹{total})
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ======================================================== */}
           {/* SECTION: ADD-ON SERVICES (PPT, DOCS, PAPER, MENTORING)    */}
@@ -698,7 +927,11 @@ export default function ClientHome() {
           <div className="modal-card animate-fade-up" style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: "18px", width: "100%", maxWidth: "480px", padding: "24px", boxShadow: "var(--shadow-xl)" }}>
             <div className="flex-between" style={{ marginBottom: "16px" }}>
               <h3 style={{ fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>
-                Upload 30% Advance Screenshot
+                {paymentModal === "final"
+                  ? "Upload Remaining 70% Balance Screenshot"
+                  : paymentModal === "full"
+                  ? "Upload 100% Full Payment Screenshot"
+                  : "Upload 30% Initial Advance Screenshot"}
               </h3>
               <button className="btn btn-ghost btn-sm" onClick={() => setPaymentModal(null)}>
                 <X size={18} />
@@ -719,7 +952,14 @@ export default function ClientHome() {
                   style={{ width: "140px", height: "140px", objectFit: "contain", background: "#fff", padding: "6px", borderRadius: "10px" }}
                 />
                 <div style={{ fontWeight: 800, fontSize: "15px", color: "var(--color-primary)", marginTop: "6px" }}>
-                  Amount to Pay: ₹{(activeRequest?.advancePaymentRequired || Math.round((activeRequest?.projectAmount || 1000) * 0.3)).toLocaleString("en-IN")}
+                  {(() => {
+                    const totalAmt = Number(activeRequest?.projectAmount || 0);
+                    const advAmt = Number(activeRequest?.advancePaymentRequired || Math.round(totalAmt * 0.3));
+                    const balAmt = Math.max(0, totalAmt - advAmt);
+                    const payAmt = paymentModal === "final" ? balAmt : paymentModal === "full" ? totalAmt : advAmt;
+                    const label = paymentModal === "final" ? "70% Remaining Balance" : paymentModal === "full" ? "100% Full Amount" : "30% Initial Advance";
+                    return `Amount to Pay (${label}): ₹${payAmt.toLocaleString("en-IN")}`;
+                  })()}
                 </div>
               </div>
 
@@ -1009,6 +1249,18 @@ export default function ClientHome() {
           </div>
         </div>
       )}
+
+      {/* Single Project Mini Profile Modal with financial ledger, specs & guarantees */}
+      <ProjectMiniProfileModal
+        project={miniProfileProject}
+        isOpen={!!miniProfileProject}
+        onClose={() => setMiniProfileProject(null)}
+        onOpenPayment={(mode, proj) => {
+          setMiniProfileProject(null);
+          setPaymentModal(mode);
+        }}
+        onWriteReview={() => navigate("/dashboard/reviews")}
+      />
     </div>
   );
 }
