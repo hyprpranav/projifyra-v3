@@ -51,8 +51,8 @@ export default function ProjifyraLoader({
               x1="0"
               id="proj-b"
             >
-              <stop stopColor="#0369a1" />
-              <stop stopColor="#67e8f9" offset="1.5" />
+              <stop stopColor="#1E3A8A" />
+              <stop stopColor="#635BFF" offset="1.2" />
             </linearGradient>
 
             <linearGradient
@@ -63,8 +63,9 @@ export default function ProjifyraLoader({
               x1="0"
               id="proj-c"
             >
-              <stop stopColor="#0369a1" />
-              <stop stopColor="#22d3ee" offset="1" />
+              <stop stopColor="#1D4ED8" />
+              <stop stopColor="#7C3AED" offset="0.7" />
+              <stop stopColor="#635BFF" offset="1" />
               <animateTransform
                 repeatCount="indefinite"
                 keySplines=".42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1;.42,0,.58,1"
@@ -84,8 +85,8 @@ export default function ProjifyraLoader({
               x1="0"
               id="proj-d"
             >
-              <stop stopColor="#38bdf8" />
-              <stop stopColor="#075985" offset="1.5" />
+              <stop stopColor="#635BFF" />
+              <stop stopColor="#1E40AF" offset="1.4" />
             </linearGradient>
           </defs>
         </svg>

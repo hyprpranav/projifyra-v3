@@ -652,7 +652,7 @@ input.error:focus {
   align-items: center;
   justify-content: center;
   gap: 3px;
-  filter: drop-shadow(0 0 10px rgba(34, 211, 238, 0.45));
+  filter: drop-shadow(0 0 12px rgba(99, 91, 255, 0.55)) drop-shadow(0 0 22px rgba(124, 58, 237, 0.35));
 }
 
 .projifyra-letter {
