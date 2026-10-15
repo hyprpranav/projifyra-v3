@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Users } from "lucide-react";
 import { getAllUsers } from "../../../services/adminService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 export default function OfficerClients() {
   const [clients, setClients] = useState([]);
@@ -14,7 +15,7 @@ export default function OfficerClients() {
     <div>
       <h2 style={{ fontSize: "var(--font-size-xl)", marginBottom: "var(--space-6)" }}>Clients</h2>
       {loading ? (
-        <div className="flex-center" style={{ minHeight: 200 }}><div className="spinner spinner-primary" /></div>
+        <ProjifyraLoader label="Loading student & client directory..." />
       ) : clients.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Users size={28} /></div>

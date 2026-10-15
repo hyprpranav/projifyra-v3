@@ -4,6 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { getClientOrders, PROGRESS_STAGES, ORDER_STATUS } from "../../../services/orderService";
 import ProjectMiniProfileModal from "../../../components/common/ProjectMiniProfileModal";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 const STATUS_BADGE = {
   "Under Review": "badge-info",
@@ -48,9 +49,7 @@ export default function ClientOrders() {
       </div>
 
       {loading ? (
-        <div className="flex-center" style={{ minHeight: 200 }}>
-          <div className="spinner spinner-primary" />
-        </div>
+        <ProjifyraLoader label="Loading your project orders & deliveries..." />
       ) : orders.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><ShoppingBag size={28} /></div>

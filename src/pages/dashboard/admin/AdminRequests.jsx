@@ -17,6 +17,7 @@ import {
 } from "../../../services/orderService";
 import { getAllUsers, deleteRequestById } from "../../../services/adminService";
 import SecurityPinModal from "../../../components/common/SecurityPinModal";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 const STATUS_BADGE = {
   "Under Review": "badge-info",
@@ -333,9 +334,7 @@ export default function AdminRequests() {
         </div>
 
         {loading ? (
-          <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
-            Loading ideas and proposals...
-          </div>
+          <ProjifyraLoader label="Loading student requests, ideas & proposals..." />
         ) : filteredRequests.length === 0 ? (
           <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
             No project requests matching criteria.

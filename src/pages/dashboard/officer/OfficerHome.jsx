@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Send, Users, CheckCircle2, Clock } from "lucide-react";
 import { getAllRequests } from "../../../services/orderService";
 import { getAllUsers } from "../../../services/adminService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 export default function OfficerHome() {
   const [requests, setRequests] = useState([]);
@@ -59,7 +60,7 @@ export default function OfficerHome() {
           <h3>Recent Requests</h3>
         </div>
         {loading ? (
-          <div className="flex-center" style={{ minHeight: 150 }}><div className="spinner spinner-primary" /></div>
+          <ProjifyraLoader label="Loading officer metrics & recent requests..." />
         ) : requests.length === 0 ? (
           <div className="empty-state"><p>No requests yet.</p></div>
         ) : (

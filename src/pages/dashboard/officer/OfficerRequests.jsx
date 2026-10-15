@@ -12,6 +12,7 @@ import {
   markOrderDelivered,
   ORDER_STATUS
 } from "../../../services/orderService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 const STATUS_BADGE = {
   "Under Review": "badge-info",
@@ -152,9 +153,7 @@ export default function OfficerRequests() {
       )}
 
       {loading ? (
-        <div className="flex-center" style={{ minHeight: 250 }}>
-          <div className="spinner spinner-primary" />
-        </div>
+        <ProjifyraLoader label="Loading officer ideas pool & student submissions..." />
       ) : requests.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Send size={28} /></div>

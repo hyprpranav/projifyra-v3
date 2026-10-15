@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Cpu, Layers } from "lucide-react";
 import { getPublicProjects } from "../../../services/projectService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 export default function ClientProjects() {
   const [projects, setProjects] = useState([]);
@@ -43,9 +44,7 @@ export default function ClientProjects() {
       </div>
 
       {loading ? (
-        <div className="flex-center" style={{ minHeight: 200 }}>
-          <div className="spinner spinner-primary" aria-label="Loading projects" />
-        </div>
+        <ProjifyraLoader label="Loading showcase project catalog..." />
       ) : projects.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Layers size={28} /></div>

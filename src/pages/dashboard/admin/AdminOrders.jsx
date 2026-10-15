@@ -4,6 +4,7 @@ import {
   Edit, ChevronRight, Check
 } from "lucide-react";
 import { getAllOrders, updateOrder, PROGRESS_STAGES, ORDER_STATUS } from "../../../services/orderService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -164,9 +165,7 @@ export default function AdminOrders() {
         </div>
 
         {loading ? (
-          <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
-            Loading orders list...
-          </div>
+          <ProjifyraLoader label="Loading confirmed client orders & stages..." />
         ) : filteredOrders.length === 0 ? (
           <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
             No orders found in database. Convert accepted requests from the Requests page.

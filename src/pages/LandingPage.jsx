@@ -11,6 +11,7 @@ import { getPublicProjects } from "../services/projectService";
 import { getApprovedReviews } from "../services/reviewService";
 import { getPlatformStats } from "../services/adminService";
 import { CONTACT_EMAIL, COLLEGE_NAME } from "../config/appConfig";
+import ProjifyraLoader from "../components/common/ProjifyraLoader";
 import "../styles/landing.css";
 
 const HERO_DOMAINS = [
@@ -322,9 +323,7 @@ export default function LandingPage() {
           </header>
 
           {loadingProjects ? (
-            <div className="flex-center" style={{ minHeight: 200 }}>
-              <div className="spinner spinner-primary" aria-label="Loading projects" />
-            </div>
+            <ProjifyraLoader label="Loading showcase projects..." />
           ) : projects.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon" aria-hidden="true">

@@ -1,17 +1,16 @@
 import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
+import ProjifyraLoader from "../common/ProjifyraLoader";
 
 // Full-page loading screen shown while auth state resolves
 function AuthLoading() {
   return (
-    <div className="page-loading" role="status" aria-label="Loading">
-      <div className="brand-mark">PROJIFYRA</div>
-      <div className="spinner spinner-primary" aria-hidden="true" />
-      <p style={{ color: "var(--color-text-secondary)", fontSize: "var(--font-size-sm)" }}>
-        Checking session...
-      </p>
-    </div>
+    <ProjifyraLoader
+      fullScreen
+      size="lg"
+      label="Authenticating session & engineering portal..."
+    />
   );
 }
 

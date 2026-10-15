@@ -8,6 +8,7 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { submitProjectRequest, getClientRequests, PROGRESS_STAGES } from "../../../services/orderService";
 import { uploadToCloudinary } from "../../../services/cloudinaryService";
 import ProjectMiniProfileModal from "../../../components/common/ProjectMiniProfileModal";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // Strict 5MB limit
 
@@ -440,9 +441,7 @@ export default function ClientRequests() {
 
       {/* Requests List */}
       {loading ? (
-        <div className="flex-center" style={{ minHeight: 200 }}>
-          <div className="spinner spinner-primary" />
-        </div>
+        <ProjifyraLoader label="Loading your project requests & status..." />
       ) : requests.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Send size={28} /></div>

@@ -19,6 +19,7 @@ import {
 } from "../../../services/orderService";
 import { uploadToCloudinary } from "../../../services/cloudinaryService";
 import ProjectMiniProfileModal from "../../../components/common/ProjectMiniProfileModal";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // Strict 5MB limit
 
@@ -274,9 +275,7 @@ export default function ClientHome() {
       )}
 
       {loading ? (
-        <div className="flex-center" style={{ minHeight: 300 }}>
-          <div className="spinner spinner-primary" />
-        </div>
+        <ProjifyraLoader label="Loading your project dashboard & milestones..." />
       ) : !activeRequest ? (
         /* Empty State */
         <div className="card card-body" style={{ textAlign: "center", padding: "var(--space-12)" }}>

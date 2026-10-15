@@ -17,6 +17,7 @@ import {
   updateCompletionPercentage,
   ORDER_STATUS
 } from "../../../services/orderService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 const INITIAL_FORM = {
   title: "",
@@ -326,9 +327,7 @@ export default function AdminProjects() {
             </div>
 
             {loading ? (
-              <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
-                Loading client projects...
-              </div>
+              <ProjifyraLoader label="Loading approved client projects & builds..." />
             ) : filteredClientProjects.length === 0 ? (
               <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
                 No approved client projects found matching the filter.
@@ -547,9 +546,7 @@ export default function AdminProjects() {
             </div>
 
             {loading ? (
-              <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
-                Loading project catalog...
-              </div>
+              <ProjifyraLoader label="Loading showcase project catalog..." />
             ) : filteredProjects.length === 0 ? (
               <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--color-text-secondary)" }}>
                 No projects found in showcase catalog. Click "New Showcase Project" above to publish one!

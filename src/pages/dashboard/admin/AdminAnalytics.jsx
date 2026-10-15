@@ -14,6 +14,7 @@ import {
   ORDER_STATUS
 } from "../../../services/orderService";
 import { getPlatformStats, updatePlatformStats } from "../../../services/adminService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 export default function AdminAnalytics() {
   const [orders, setOrders] = useState([]);
@@ -432,7 +433,13 @@ export default function AdminAnalytics() {
               </tr>
             </thead>
             <tbody>
-              {filteredList.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: "center", padding: "32px" }}>
+                    <ProjifyraLoader label="Calculating company margins & ledger..." />
+                  </td>
+                </tr>
+              ) : filteredList.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: "center", padding: "32px", color: "var(--color-text-secondary)" }}>
                     No matching project records found.

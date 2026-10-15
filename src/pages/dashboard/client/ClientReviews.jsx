@@ -10,6 +10,7 @@ import {
   updateReview,
   deleteReview,
 } from "../../../services/reviewService";
+import ProjifyraLoader from "../../../components/common/ProjifyraLoader";
 
 function StarPicker({ value, onChange }) {
   return (
@@ -356,9 +357,7 @@ export default function ClientReviews() {
       </h3>
 
       {loading ? (
-        <div className="flex-center" style={{ minHeight: 150 }}>
-          <div className="spinner spinner-primary" />
-        </div>
+        <ProjifyraLoader label="Loading testimonials & feedback..." />
       ) : approvedReviews.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Star size={28} /></div>
