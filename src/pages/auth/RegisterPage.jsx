@@ -217,20 +217,26 @@ export default function RegisterPage() {
     const e = {};
     if (!form.fullName.trim()) e.fullName = "Full name is required.";
     if (!form.registerNumber.trim()) e.registerNumber = "Register number is mandatory.";
+    
+    const cleanPhone = form.phone.replace(/[^\d]/g, "");
     if (!form.phone.trim()) e.phone = "Phone number is required for contact.";
-    else if (!/^\d{10}$/.test(form.phone.replace(/\s/g, "")))
-      e.phone = "Please enter a valid 10-digit phone number.";
+    else if (cleanPhone.length < 10)
+      e.phone = "Please enter a valid 10-digit mobile number.";
+
     if (!form.email.trim()) e.email = "Email address is required.";
     else if (!/\S+@\S+\.\S+/.test(form.email)) e.email = "Please enter a valid email address.";
+
     if (!form.password) e.password = "Password is required.";
     else if (form.password.length < 6) e.password = "Password must be at least 6 characters.";
-    if (form.password !== form.confirmPassword) e.confirmPassword = "Passwords do not match.";
+    if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
+      e.confirmPassword = "Passwords do not match.";
+    }
 
     // Idea details
     if (!form.projectTitle.trim()) e.projectTitle = "Project / Idea title is required.";
-    if (!form.shortDescription.trim()) e.shortDescription = "Please provide a short description / problem statement.";
-    if (!form.requirements.trim()) e.requirements = "Please specify components, technologies, or tools you need.";
-    if (selectedServices.length === 0) e.services = "Please select at least one engineering deliverable or service.";
+    if (!form.shortDescription.trim() && !form.requirements.trim()) {
+      e.shortDescription = "Please provide a short description or requirements for your idea.";
+    }
 
     return e;
   };
@@ -287,11 +293,11 @@ export default function RegisterPage() {
         department: form.department,
         year: form.year,
         projectTitle: form.projectTitle.trim(),
-        shortDescription: form.shortDescription.trim(),
-        requirements: form.requirements.trim(),
-        hasComponents: form.hasComponents,
-        deliverySpeed: form.deliverySpeed,
-        selectedServices,
+        shortDescription: form.shortDescription.trim() || form.requirements.trim() || "Student project concept.",
+        requirements: form.requirements.trim() || form.shortDescription.trim() || "Hardware and engineering deliverables.",
+        hasComponents: form.hasComponents || "no",
+        deliverySpeed: form.deliverySpeed || "normal",
+        selectedServices: selectedServices.length > 0 ? selectedServices : ["hardware"],
         pcbTool: selectedServices.includes("pcb") ? pcbTool : "",
         simulationTool: selectedServices.includes("simulation") ? simulationTool : "",
         addonsRequested: selectedServices.filter((s) => ["ppt", "document", "paper", "mentoring"].includes(s)),

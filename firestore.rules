@@ -123,5 +123,15 @@ service cloud.firestore {
       allow read: if isMasterAdmin();
       allow update, delete: if isMasterAdmin();
     }
+
+    // 8. Client Issues & Support Messages
+    match /clientIssues/{issueId} {
+      // Anyone can submit an issue / inquiry (including on login screen)
+      allow create: if true;
+      
+      // Master Admin can view, update, delete all issues; Students can read their own
+      allow read: if isMasterAdmin() || (isAuthenticated() && resource.data.email == request.auth.token.email);
+      allow update, delete: if isMasterAdmin();
+    }
   }
 }

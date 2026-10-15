@@ -90,5 +90,12 @@ service cloud.firestore {
       allow read: if isMasterAdmin();
       allow update, delete: if isMasterAdmin();
     }
+
+    // 8. Client Issues & Support Messages
+    match /clientIssues/{issueId} {
+      allow create: if true;
+      allow read: if isMasterAdmin() || (isAuthenticated() && resource.data.email == request.auth.token.email);
+      allow update, delete: if isMasterAdmin();
+    }
   }
 }

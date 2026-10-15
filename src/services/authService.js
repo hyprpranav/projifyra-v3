@@ -30,40 +30,77 @@ export async function registerClient(userData) {
 
   // Use secondary auth instance so primary auth session is untouched and user doesn't get auto-routed
   const secondaryAuth = getSecondaryAuth();
-  const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
-  const user = credential.user;
+  let user = null;
+  let isExisting = false;
 
-  // Update display name on user
-  await updateProfile(user, { displayName: fullName });
+  try {
+    const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    user = credential.user;
+    await updateProfile(user, { displayName: fullName });
+  } catch (err) {
+    if (err.code === "auth/email-already-in-use") {
+      isExisting = true;
+      // Look up existing user by email in Firestore
+      try {
+        const uQ = query(collection(db, "users"), where("email", "==", email.trim().toLowerCase()));
+        const uSnap = await getDocs(uQ);
+        if (!uSnap.empty) {
+          const docItem = uSnap.docs[0];
+          user = { uid: docItem.id, email: email.trim().toLowerCase() };
+          // Update profile with latest submitted contact info
+          await updateDoc(doc(db, "users", docItem.id), {
+            fullName: fullName || docItem.data().fullName,
+            phone: phone || docItem.data().phone,
+            college: college || docItem.data().college,
+            department: department || docItem.data().department,
+            registerNumber: registerNumber || docItem.data().registerNumber,
+            updatedAt: serverTimestamp(),
+          });
+        }
+      } catch (fErr) {
+        console.warn("Could not retrieve existing user in Firestore:", fErr);
+      }
+
+      if (!user) {
+        user = { uid: `client_${Date.now()}`, email: email.trim().toLowerCase() };
+      }
+    } else {
+      throw err;
+    }
+  }
 
   // Determine role (case-insensitive check for Master Super Admin)
   const isMasterAdmin = email?.trim().toLowerCase() === MAIN_ADMIN_EMAIL.trim().toLowerCase();
   const role = isMasterAdmin ? "admin" : "client";
 
-  // Store user profile in Firestore (NO password field)
-  await setDoc(doc(db, "users", user.uid), {
-    uid: user.uid,
-    fullName: fullName || (isMasterAdmin ? "Master Admin (hyprpranav)" : "User"),
-    email: email.trim().toLowerCase(),
-    phone: phone || "",
-    college: college || "",
-    department: department || "",
-    year: year || "",
-    registerNumber: registerNumber || "",
-    role,
-    approvalStatus: isMasterAdmin ? "approved" : "pending",
-    active: isMasterAdmin ? true : false,
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp(),
-  });
+  if (!isExisting) {
+    // Store user profile in Firestore (NO password field)
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      fullName: fullName || (isMasterAdmin ? "Master Admin (hyprpranav)" : "User"),
+      email: email.trim().toLowerCase(),
+      phone: phone || "",
+      college: college || "",
+      department: department || "",
+      year: year || "",
+      registerNumber: registerNumber || "",
+      role,
+      approvalStatus: isMasterAdmin ? "approved" : "pending",
+      active: isMasterAdmin ? true : false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
 
-  // Log activity
-  await logActivity("client_registered", `User registered (pending idea approval): ${fullName} (${email}) [role: ${role}]`, user.uid);
+    // Log activity
+    await logActivity("client_registered", `User registered (pending idea approval): ${fullName} (${email}) [role: ${role}]`, user.uid);
+  }
 
   // Clean up secondary auth
-  await signOut(secondaryAuth);
+  try {
+    await signOut(secondaryAuth);
+  } catch {}
 
-  return { user, role };
+  return { user, role, isExisting };
 }
 
 // --- REGISTER OFFICER (Submitted to Admin Desk for Approval) ---
@@ -155,7 +192,9 @@ export async function loginUser(email, password) {
   if ((userData.role === "client" || (!userData.role && !isMasterAdmin)) && !isMasterAdmin) {
     if (userData.approvalStatus === "pending" || userData.active === false) {
       await signOut(auth);
-      throw new Error("Your project idea has been submitted and is currently under review by Team FIRA and our officers. We have noted your email. Once approved, you will receive an email confirmation and your account will be activated to log in and proceed further.");
+      const pendingErr = new Error("Still your idea is under approval, so please kindly wait or contact system admin.");
+      pendingErr.isPendingApproval = true;
+      throw pendingErr;
     }
     if (userData.approvalStatus === "rejected") {
       await signOut(auth);

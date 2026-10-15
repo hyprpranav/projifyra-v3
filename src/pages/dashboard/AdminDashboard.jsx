@@ -3,12 +3,14 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import {
   LayoutDashboard, Users, FolderOpen, Send, Star,
   ShoppingBag, BarChart3, Activity, UserCog, User,
+  HelpCircle,
 } from "lucide-react";
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAuth } from "../../contexts/AuthContext";
 import { getAllRequests, getAllOrders, ORDER_STATUS } from "../../services/orderService";
 import { getAllReviews } from "../../services/reviewService";
 import { getAllUsers } from "../../services/adminService";
+import { getAllIssues } from "../../services/issueService";
 import AdminHome from "./admin/AdminHome";
 import AdminClients from "./admin/AdminClients";
 import AdminOfficers from "./admin/AdminOfficers";
@@ -16,6 +18,7 @@ import AdminProjects from "./admin/AdminProjects";
 import AdminRequests from "./admin/AdminRequests";
 import AdminOrders from "./admin/AdminOrders";
 import AdminReviews from "./admin/AdminReviews";
+import AdminIssues from "./admin/AdminIssues";
 import AdminStats from "./admin/AdminStats";
 import AdminLogs from "./admin/AdminLogs";
 import AdminProfile from "./client/ClientProfile";
@@ -28,17 +31,19 @@ export default function AdminDashboard() {
     projects: 0,
     orders: 0,
     reviews: 0,
+    issues: 0,
   });
 
   useEffect(() => {
     let isMounted = true;
     async function fetchCounts() {
       try {
-        const [reqs, ords, revs, clients] = await Promise.all([
+        const [reqs, ords, revs, clients, issuesList] = await Promise.all([
           getAllRequests().catch(() => []),
           getAllOrders().catch(() => []),
           getAllReviews().catch(() => []),
           getAllUsers("client").catch(() => []),
+          getAllIssues().catch(() => []),
         ]);
 
         if (!isMounted) return;
@@ -67,12 +72,16 @@ export default function AdminDashboard() {
         // Pending moderation reviews
         const pendingReviews = revs.filter((r) => !r.approved).length;
 
+        // Open client support issues / chat messages
+        const openIssues = issuesList.filter((i) => i.status === "open").length;
+
         setCounts({
           clients: clients.length,
           requests: pendingReqs || reqs.length,
           projects: activeProjects,
           orders: activeOrders,
           reviews: pendingReviews,
+          issues: openIssues,
         });
       } catch (err) {
         console.warn("Could not load badge counts:", err);
@@ -92,8 +101,10 @@ export default function AdminDashboard() {
     { to: "/admin/projects", icon: <FolderOpen size={18} />, label: "Projects", badge: counts.projects, badgeColor: "badge-purple" },
     { to: "/admin/requests", icon: <Send size={18} />, label: "Requests", badge: counts.requests },
     { to: "/admin/orders", icon: <ShoppingBag size={18} />, label: "Orders", badge: counts.orders },
-    { section: "Platform" },
+    { section: "Support & Reviews" },
+    { to: "/admin/issues", icon: <HelpCircle size={18} />, label: "Client Issues", badge: counts.issues, badgeColor: "badge-amber" },
     { to: "/admin/reviews", icon: <Star size={18} />, label: "Reviews", badge: counts.reviews, badgeColor: "badge-amber" },
+    { section: "Platform" },
     { to: "/admin/stats", icon: <BarChart3 size={18} />, label: "Statistics" },
     { to: "/admin/logs", icon: <Activity size={18} />, label: "Activity Logs" },
     { section: "Account" },
@@ -109,6 +120,7 @@ export default function AdminDashboard() {
         <Route path="projects" element={<AdminProjects />} />
         <Route path="requests" element={<AdminRequests />} />
         <Route path="orders" element={<AdminOrders />} />
+        <Route path="issues" element={<AdminIssues />} />
         <Route path="reviews" element={<AdminReviews />} />
         <Route path="stats" element={<AdminStats />} />
         <Route path="logs" element={<AdminLogs />} />
