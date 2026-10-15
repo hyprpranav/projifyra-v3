@@ -195,118 +195,367 @@
 .hero-auth-link:hover { color: rgba(255, 255, 255, 0.9); }
 .hero-auth-sep { color: rgba(255, 255, 255, 0.2); }
 
-/* Hero Visual Panel */
+/* Hero Visual Panel — High-Tech Engineering Console */
 .hero-visual {
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
+  width: 100%;
 }
 
-.hero-cards-scene {
+.hero-terminal-scene {
   position: relative;
-  width: 360px;
-  height: 400px;
+  width: 100%;
+  max-width: 520px;
+  padding: 24px 0;
   perspective: 1000px;
 }
 
-.hero-float-card {
-  position: absolute;
-  background: rgba(255, 255, 255, 0.06);
+.hero-terminal-card {
+  background: rgba(13, 17, 28, 0.85);
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius-xl);
-  backdrop-filter: blur(10px);
-  padding: var(--space-4);
-  transition: all var(--transition-normal);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.7), 0 0 50px rgba(99, 91, 255, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  overflow: hidden;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
 }
 
-.hero-float-card-main {
-  width: 260px;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(99, 91, 255, 0.3);
-  animation: float 5s ease-in-out infinite;
-  box-shadow: 0 20px 60px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+.hero-terminal-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.8), 0 0 60px rgba(99, 91, 255, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
-.hero-float-card-sm {
-  width: 160px;
+.htc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.hero-float-card-tl {
-  top: 20px;
-  left: -10px;
-  animation: float 6s ease-in-out infinite 1s;
+.htc-dots {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.hero-float-card-br {
-  bottom: 30px;
-  right: -10px;
-  animation: float 7s ease-in-out infinite 0.5s;
+.htc-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  opacity: 0.85;
+}
+.htc-dot-red { background: #EF4444; }
+.htc-dot-yellow { background: #F59E0B; }
+.htc-dot-green { background: #10B981; }
+
+.htc-system-title {
+  font-size: 11px;
+  font-family: var(--font-family-mono, monospace);
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.08em;
 }
 
-.hfc-label {
+.htc-sep {
+  color: #635BFF;
+  margin: 0 4px;
+}
+
+.htc-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 10px;
-  color: rgba(255,255,255,0.4);
-  font-weight: var(--font-weight-semibold);
+  font-weight: 600;
+  color: #10B981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+}
+
+.htc-live-beacon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  animation: pulse-beacon 1.8s infinite;
+}
+
+.htc-body {
+  padding: 20px 22px;
+}
+
+.htc-featured-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.htc-pill-lead {
+  font-size: 10px;
+  font-weight: 700;
+  color: #a5b4fc;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  margin-bottom: var(--space-2);
 }
 
-.hfc-title {
-  font-size: var(--font-size-sm);
-  color: white;
-  font-weight: var(--font-weight-bold);
-  margin-bottom: var(--space-3);
+.htc-lead-time {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.45);
+  font-family: var(--font-family-mono, monospace);
 }
 
-.hfc-tags {
+.htc-project-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.35;
+  margin: 0 0 14px 0;
+}
+
+.htc-tech-pills {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-1);
+  gap: 6px;
+  margin-bottom: 18px;
 }
 
-.hfc-tag {
-  padding: 2px 8px;
-  background: rgba(99, 91, 255, 0.2);
+.htc-tech-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #c7d2fe;
+  background: rgba(99, 91, 255, 0.15);
+  border: 1px solid rgba(99, 91, 255, 0.3);
+  padding: 4px 10px;
   border-radius: var(--radius-full);
-  font-size: 10px;
-  color: #a5b4fc;
-  font-weight: var(--font-weight-semibold);
 }
 
-.hfc-progress {
-  height: 4px;
-  background: rgba(255,255,255,0.1);
+.htc-pipeline-section {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.htc-pipeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.htc-pipeline-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.htc-pipeline-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.htc-progress-track {
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: var(--radius-full);
   overflow: hidden;
-  margin-top: var(--space-3);
+  margin-bottom: 12px;
+  position: relative;
 }
 
-.hfc-progress-fill {
+.htc-progress-bar-glow {
   height: 100%;
   border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+  background: linear-gradient(90deg, #635BFF 0%, #22d3ee 100%);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.6);
 }
 
-.hfc-stat {
+.htc-steps-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.htc-step {
   display: flex;
-  align-items: baseline;
-  gap: var(--space-1);
-}
-
-.hfc-stat-num {
-  font-size: var(--font-size-xl);
-  font-weight: var(--font-weight-extrabold);
-  color: white;
-}
-
-.hfc-stat-label {
+  align-items: center;
+  gap: 5px;
   font-size: 10px;
-  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.htc-step-done {
+  color: #34d399;
+}
+.htc-step-icon.done {
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+.htc-step-active {
+  color: #38bdf8;
+}
+
+.htc-step-spinner {
+  width: 10px;
+  height: 10px;
+  border: 2px solid rgba(56, 189, 248, 0.3);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+.htc-step-pending {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.htc-step-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  flex-shrink: 0;
+  margin-left: 2px;
+}
+
+.htc-step-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.htc-telemetry-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.htc-telem-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.htc-telem-k {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.htc-telem-v {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.85);
+  font-family: var(--font-family-mono, monospace);
+}
+
+.htc-telem-v.text-emerald {
+  color: #10B981;
+}
+
+/* Floating Metric Badges — Framed outside to prevent overlap */
+.hero-metric-badge {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(15, 23, 42, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-full);
+  padding: 8px 16px;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 16px 36px -6px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  pointer-events: auto;
+}
+
+.hero-metric-badge-top {
+  top: 4px;
+  right: -8px;
+  animation: float 6s ease-in-out infinite;
+}
+
+.hero-metric-badge-bottom {
+  bottom: 4px;
+  left: -8px;
+  animation: float 7s ease-in-out infinite 0.75s;
+}
+
+.hmb-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 10px #10B981;
+  animation: pulse-beacon 1.5s infinite;
+  flex-shrink: 0;
+}
+
+.hmb-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.hmb-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.06em;
+}
+
+.hmb-val {
+  font-size: 12px;
+  font-weight: 800;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+}
+
+.hmb-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
+}
+
+.hmb-stars {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 6px;
+}
+
+@keyframes pulse-beacon {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.3); opacity: 0.6; }
 }
 
 /* ---- STATS BAR ---- */
@@ -935,7 +1184,12 @@
   .hero-domains { justify-content: center; }
   .hero-actions { justify-content: center; }
   .hero-auth-links { justify-content: center; }
-  .hero-visual { display: none; }
+  .hero-visual { 
+    display: flex; 
+    margin-top: var(--space-6);
+    justify-content: center;
+    width: 100%;
+  }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
   .how-steps { grid-template-columns: repeat(2, 1fr); }
   .how-steps::before { display: none; }
@@ -949,6 +1203,21 @@
 }
 
 @media (max-width: 640px) {
+  .hero-terminal-scene {
+    padding: 10px 0;
+  }
+  .hero-metric-badge-top,
+  .hero-metric-badge-bottom {
+    display: none;
+  }
+  .htc-steps-row {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+  }
+  .htc-telemetry-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
   .services-grid { grid-template-columns: 1fr; }
   .how-steps { grid-template-columns: 1fr; }
   .projects-grid { grid-template-columns: 1fr; }

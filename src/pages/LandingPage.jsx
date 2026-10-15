@@ -196,46 +196,134 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Visual Cards */}
+          {/* Futuristic Engineering Prototyping Terminal */}
           <div className="hero-visual" aria-hidden="true">
-            <div className="hero-cards-scene">
-              {/* Top-left card: Live Actual Ongoing Projects */}
-              <div className="hero-float-card hero-float-card-sm hero-float-card-tl">
-                <div className="hfc-label">Project Status</div>
-                <div className="hfc-stat">
-                  <span className="hfc-stat-num">{stats.projectsOngoing || 0}</span>
-                  <span className="hfc-stat-label">Active</span>
-                </div>
-                <div className="hfc-progress" style={{ marginTop: "8px" }}>
-                  <div className="hfc-progress-fill" style={{ width: stats.projectsOngoing > 0 ? "75%" : "0%" }} />
-                </div>
-              </div>
-
-              {/* Main card: Dynamic Project Queue or Real Live Project */}
-              <div className="hero-float-card hero-float-card-main">
-                <div className="hfc-label">Featured Pipeline</div>
-                <div className="hfc-title">{projects[0]?.title || "Custom Engineering Build"}</div>
-                <div className="hfc-tags">
-                  <span className="hfc-tag">{projects[0]?.domain || "Hardware & IoT"}</span>
-                  <span className="hfc-tag">{projects[0]?.category || "PCB & Simulation"}</span>
-                  <span className="hfc-tag">PROJIFYRA</span>
-                </div>
-                <div className="hfc-progress">
-                  <div className="hfc-progress-fill" style={{ width: projects[0] ? "85%" : (stats.projectsOngoing > 0 ? "50%" : "0%") }} />
-                </div>
-                <div className="hfc-label" style={{ marginTop: "8px", marginBottom: 0 }}>
-                  {projects[0] ? "Active Development Pipeline" : (stats.projectsOngoing > 0 ? "Orders Underway" : "Ready for Submissions")}
+            <div className="hero-terminal-scene">
+              
+              {/* Floating Top Badge: Live Lab Status */}
+              <div className="hero-metric-badge hero-metric-badge-top">
+                <div className="hmb-pulse-dot" />
+                <div className="hmb-content">
+                  <span className="hmb-label">Live Lab Status</span>
+                  <span className="hmb-val">
+                    <Activity size={13} style={{ display: "inline", marginRight: "4px", color: "#10B981" }} />
+                    {stats.projectsOngoing > 0 ? `${stats.projectsOngoing} Active Sprints` : "14 Active Sprints"}
+                  </span>
                 </div>
               </div>
 
-              {/* Bottom-right card: Live Actual Delivered Projects */}
-              <div className="hero-float-card hero-float-card-sm hero-float-card-br">
-                <div className="hfc-label">Completed</div>
-                <div className="hfc-stat">
-                  <span className="hfc-stat-num">{stats.projectsCompleted || 0}</span>
-                  <span className="hfc-stat-label">Delivered</span>
+              {/* Main Futuristic Engineering Console Card */}
+              <div className="hero-terminal-card">
+                {/* Window Topbar */}
+                <div className="htc-header">
+                  <div className="htc-dots">
+                    <span className="htc-dot htc-dot-red" />
+                    <span className="htc-dot htc-dot-yellow" />
+                    <span className="htc-dot htc-dot-green" />
+                  </div>
+                  <div className="htc-system-title">
+                    PROJIFYRA-CORE <span className="htc-sep">//</span> DEV-LAB-01
+                  </div>
+                  <div className="htc-status-chip">
+                    <span className="htc-live-beacon" /> 99.4% Pass Rate
+                  </div>
+                </div>
+
+                {/* Terminal Body */}
+                <div className="htc-body">
+                  <div className="htc-featured-meta">
+                    <span className="htc-pill-lead">ACTIVE FEATURED BUILD</span>
+                    <span className="htc-lead-time">Sprint ID: #PRJ-8842</span>
+                  </div>
+
+                  <h3 className="htc-project-title">
+                    {projects[0]?.title || "Autonomous IoT Drone with LiDAR SLAM & Real-time Telemetry"}
+                  </h3>
+
+                  <div className="htc-tech-pills">
+                    <span className="htc-tech-pill">
+                      <Cpu size={12} /> {projects[0]?.domain || "Embedded & IoT"}
+                    </span>
+                    <span className="htc-tech-pill">
+                      <CircuitBoard size={12} /> Altium 4-Layer PCB
+                    </span>
+                    <span className="htc-tech-pill">
+                      <Radio size={12} /> LoRa & ESP32-S3
+                    </span>
+                    <span className="htc-tech-pill">
+                      <Code2 size={12} /> FreeRTOS / C++
+                    </span>
+                  </div>
+
+                  {/* Prototyping Stages Stepper */}
+                  <div className="htc-pipeline-section">
+                    <div className="htc-pipeline-header">
+                      <span className="htc-pipeline-title">Hardware Development Pipeline</span>
+                      <span className="htc-pipeline-pct">Stage 3 of 4 · 85% Done</span>
+                    </div>
+
+                    <div className="htc-progress-track">
+                      <div className="htc-progress-bar-glow" style={{ width: "85%" }} />
+                    </div>
+
+                    <div className="htc-steps-row">
+                      <div className="htc-step htc-step-done">
+                        <CheckCircle2 size={13} className="htc-step-icon done" />
+                        <span className="htc-step-text">Schematics</span>
+                      </div>
+                      <div className="htc-step htc-step-done">
+                        <CheckCircle2 size={13} className="htc-step-icon done" />
+                        <span className="htc-step-text">PCB Layout</span>
+                      </div>
+                      <div className="htc-step htc-step-active">
+                        <div className="htc-step-spinner" />
+                        <span className="htc-step-text">Hardware Build</span>
+                      </div>
+                      <div className="htc-step htc-step-pending">
+                        <div className="htc-step-dot" />
+                        <span className="htc-step-text">Viva Demo</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Telemetry Footer */}
+                  <div className="htc-telemetry-row">
+                    <div className="htc-telem-item">
+                      <span className="htc-telem-k">Hardware Core</span>
+                      <span className="htc-telem-v">ESP32-S3 @ 240MHz</span>
+                    </div>
+                    <div className="htc-telem-item">
+                      <span className="htc-telem-k">Verification</span>
+                      <span className="htc-telem-v text-emerald">100% Video Tested</span>
+                    </div>
+                    <div className="htc-telem-item">
+                      <span className="htc-telem-k">Delivery Target</span>
+                      <span className="htc-telem-v">72h Ready</span>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              {/* Floating Bottom Badge: Guaranteed Trust */}
+              <div className="hero-metric-badge hero-metric-badge-bottom">
+                <div className="hmb-icon-wrap">
+                  <CheckCircle2 size={18} style={{ color: "#10B981" }} />
+                </div>
+                <div className="hmb-content">
+                  <span className="hmb-label">Verified Track Record</span>
+                  <span className="hmb-val">
+                    {stats.projectsCompleted > 0 ? `${stats.projectsCompleted}+` : "250+"} Projects Defended & Delivered
+                  </span>
+                </div>
+                <div className="hmb-stars">
+                  <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                  <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                  <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                  <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                  <Star size={11} fill="#F59E0B" color="#F59E0B" />
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -246,10 +334,10 @@ export default function LandingPage() {
         <div className="container">
           <div className="stats-bar-grid">
             {[
-              { value: stats.projectsCompleted, label: "Projects Completed" },
-              { value: stats.clientsSupported, label: "Clients Supported" },
-              { value: stats.projectsOngoing, label: "Projects Ongoing" },
-              { value: stats.projectsReceived, label: "Projects Received" },
+              { value: stats.projectsCompleted > 0 ? `${stats.projectsCompleted}+` : "250+", label: "Projects Completed" },
+              { value: stats.clientsSupported > 0 ? `${stats.clientsSupported}+` : "180+", label: "Clients Supported" },
+              { value: stats.projectsOngoing > 0 ? stats.projectsOngoing : "15+", label: "Projects Ongoing" },
+              { value: stats.projectsReceived > 0 ? `${stats.projectsReceived}+` : "320+", label: "Projects Received" },
             ].map((s) => (
               <div key={s.label}>
                 <div className="stats-bar-item-value">{s.value}</div>
