@@ -76,9 +76,10 @@ export const PROGRESS_STAGES = [
 ];
 
 // --- 1. SUBMIT PROJECT REQUEST (With Idea, Components, & Cloudinary Document) ---
-export async function submitProjectRequest(clientId, formData) {
+export async function submitProjectRequest(clientId, formData, customDb = null) {
+  const targetDb = customDb || db;
   const cleanEmail = (formData.email || "").trim().toLowerCase();
-  const ref = await addDoc(collection(db, REQUESTS_COL), {
+  const ref = await addDoc(collection(targetDb, REQUESTS_COL), {
     clientId,
     fullName: formData.fullName || "",
     teamName: formData.teamName || "",
@@ -133,7 +134,7 @@ export async function submitProjectRequest(clientId, formData) {
     updatedAt: serverTimestamp(),
   });
 
-  await logOrderActivity("request_submitted", `New project idea submitted: ${formData.projectTitle || "Custom Project"}`, clientId);
+  await logOrderActivity("request_submitted", `New project idea submitted: ${formData.projectTitle || "Custom Project"}`, clientId, targetDb);
   return ref.id;
 }
 
@@ -539,9 +540,10 @@ export async function updateOrder(orderId, updates) {
   });
 }
 
-async function logOrderActivity(type, message, userId) {
+async function logOrderActivity(type, message, userId, customDb = null) {
   try {
-    await addDoc(collection(db, "activityLogs"), {
+    const targetDb = customDb || db;
+    await addDoc(collection(targetDb, "activityLogs"), {
       type,
       message,
       userId,

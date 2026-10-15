@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  ArrowLeft, Eye, EyeOff, AlertCircle, CheckCircle2,
+  ArrowLeft, Eye, EyeOff, AlertCircle, AlertTriangle, CheckCircle2,
   UploadCloud, FileText, Zap, Cpu, Sparkles, X, ShieldAlert,
   CircuitBoard, Radio, Layers, Code2, BookOpen
 } from "lucide-react";
@@ -118,13 +118,54 @@ const AVAILABLE_SERVICES = [
   },
 ];
 
-function FieldError({ msg }) {
-  if (!msg) return null;
-  return (
-    <span className="form-error" role="alert" style={{ display: "flex", alignItems: "center", gap: "4px", fontSize: "12px", color: "var(--color-error)", marginTop: "4px" }}>
-      <AlertCircle size={13} aria-hidden="true" /> {msg}
-    </span>
-  );
+// Visual Indication Box: Clearly shows what requirement is missing, why it is required, and shows green checkmark when fulfilled
+function FieldRequirementBox({ error, whyRequired, isFilled }) {
+  if (error) {
+    return (
+      <div
+        role="alert"
+        style={{
+          marginTop: "6px",
+          padding: "8px 12px",
+          borderRadius: "8px",
+          background: "#FEF2F2",
+          border: "1.5px solid #EF4444",
+          boxShadow: "0 2px 8px rgba(239, 68, 68, 0.08)",
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "8px",
+          fontSize: "12px",
+          lineHeight: "1.4",
+        }}
+      >
+        <AlertCircle size={16} color="#DC2626" style={{ flexShrink: 0, marginTop: "1px" }} />
+        <div>
+          <div style={{ fontWeight: 800, color: "#DC2626" }}>
+            Requirement Incomplete: {error}
+          </div>
+          {whyRequired && (
+            <div style={{ color: "#7F1D1D", marginTop: "2px", fontSize: "11px" }}>
+              <strong>Why required:</strong> {whyRequired}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (isFilled) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: "5px", fontSize: "11px", color: "#059669", marginTop: "4px", fontWeight: 600 }}>
+        <CheckCircle2 size={13} color="#059669" /> Requirement fulfilled
+      </div>
+    );
+  }
+
+  return null;
+}
+
+function FieldError({ msg, whyRequired, isFilled }) {
+  return <FieldRequirementBox error={msg} whyRequired={whyRequired} isFilled={isFilled} />;
 }
 
 export default function RegisterPage() {
@@ -178,6 +219,7 @@ export default function RegisterPage() {
   const [uploadProgress, setUploadProgress] = useState(false);
 
   const [errors, setErrors] = useState({});
+  const [missingFields, setMissingFields] = useState([]);
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [globalError, setGlobalError] = useState("");
@@ -186,7 +228,14 @@ export default function RegisterPage() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((f) => ({ ...f, [name]: value }));
-    if (errors[name]) setErrors((err) => ({ ...err, [name]: "" }));
+    if (errors[name]) {
+      setErrors((err) => {
+        const next = { ...err };
+        delete next[name];
+        return next;
+      });
+      setMissingFields((prev) => prev.filter((item) => item.field !== name));
+    }
     if (globalError) setGlobalError("");
   };
 
@@ -228,14 +277,23 @@ export default function RegisterPage() {
 
     if (!form.password) e.password = "Password is required.";
     else if (form.password.length < 6) e.password = "Password must be at least 6 characters.";
-    if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
+    
+    if (!form.confirmPassword) {
+      e.confirmPassword = "Confirm password is required.";
+    } else if (form.password && form.confirmPassword && form.password !== form.confirmPassword) {
       e.confirmPassword = "Passwords do not match.";
     }
 
     // Idea details
     if (!form.projectTitle.trim()) e.projectTitle = "Project / Idea title is required.";
-    if (!form.shortDescription.trim() && !form.requirements.trim()) {
-      e.shortDescription = "Please provide a short description or requirements for your idea.";
+    if (!form.shortDescription.trim()) {
+      e.shortDescription = "Short description / problem statement is required.";
+    }
+    if (!form.requirements.trim()) {
+      e.requirements = "Please specify required components or technologies.";
+    }
+    if (selectedServices.length === 0) {
+      e.services = "Please select at least one engineering deliverable or service.";
     }
 
     return e;
@@ -246,12 +304,26 @@ export default function RegisterPage() {
     const v = validate();
     if (Object.keys(v).length > 0) {
       setErrors(v);
-      const firstErrorKey = Object.keys(v)[0];
-      const el = document.getElementById(`reg-${firstErrorKey}`);
+      const items = [];
+      if (v.fullName) items.push({ id: "reg-fullName", field: "fullName", label: "Full Name", msg: v.fullName });
+      if (v.registerNumber) items.push({ id: "reg-registerNumber", field: "registerNumber", label: "Register Number", msg: v.registerNumber });
+      if (v.phone) items.push({ id: "reg-phone", field: "phone", label: "Phone Number", msg: v.phone });
+      if (v.email) items.push({ id: "reg-email", field: "email", label: "Email Address", msg: v.email });
+      if (v.password) items.push({ id: "reg-password", field: "password", label: "Password", msg: v.password });
+      if (v.confirmPassword) items.push({ id: "reg-confirmPassword", field: "confirmPassword", label: "Confirm Password", msg: v.confirmPassword });
+      if (v.projectTitle) items.push({ id: "reg-projectTitle", field: "projectTitle", label: "Project Title", msg: v.projectTitle });
+      if (v.shortDescription) items.push({ id: "reg-shortDescription", field: "shortDescription", label: "Short Description", msg: v.shortDescription });
+      if (v.requirements) items.push({ id: "reg-requirements", field: "requirements", label: "Required Components", msg: v.requirements });
+      if (v.services) items.push({ id: "reg-services", field: "services", label: "Deliverables / Services", msg: v.services });
+      setMissingFields(items);
+
+      const firstErrorKey = items[0]?.id || `reg-${Object.keys(v)[0]}`;
+      const el = document.getElementById(firstErrorKey);
       if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
 
+    setMissingFields([]);
     setLoading(true);
     setGlobalError("");
     setUploadProgress(true);
@@ -269,8 +341,8 @@ export default function RegisterPage() {
         documentSize = docFile.size;
       }
 
-      // 2. Register client in Firebase Auth & Firestore
-      const { user } = await registerClient({
+      // 2. Register client in Firebase Auth & Firestore using isolated secondary app
+      const { user, secondaryAuth, targetDb } = await registerClient({
         email: form.email.trim(),
         password: form.password,
         fullName: form.fullName.trim(),
@@ -305,7 +377,14 @@ export default function RegisterPage() {
         documentUrl,
         documentName,
         documentSize,
-      });
+      }, targetDb);
+
+      // 4. Safely sign out secondary auth so primary session remains clean
+      if (secondaryAuth) {
+        try {
+          await signOut(secondaryAuth);
+        } catch {}
+      }
 
       // Show success screen (session remains clean since secondaryAuth was used)
       setSuccess(true);
@@ -468,6 +547,60 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {/* Top Incomplete Requirements Summary Banner */}
+          {missingFields.length > 0 && (
+            <div
+              role="alert"
+              style={{
+                marginBottom: "var(--space-6)",
+                padding: "16px",
+                borderRadius: "14px",
+                background: "#FEF2F2",
+                border: "2px solid #EF4444",
+                boxShadow: "0 4px 14px rgba(239, 68, 68, 0.12)",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "10px", fontWeight: 800, color: "#DC2626", fontSize: "15px", marginBottom: "6px" }}>
+                <AlertTriangle size={20} color="#DC2626" />
+                <span>{missingFields.length} Mandatory Requirement{missingFields.length > 1 ? "s" : ""} Missing</span>
+              </div>
+              <p style={{ fontSize: "13px", color: "#991B1B", margin: "0 0 10px 0", lineHeight: "1.5" }}>
+                Please fill in the marked requirement fields below so our engineering team can review your project proposal:
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                {missingFields.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      const el = document.getElementById(item.id);
+                      if (el) {
+                        el.scrollIntoView({ behavior: "smooth", block: "center" });
+                        el.focus?.();
+                      }
+                    }}
+                    style={{
+                      background: "#FFFFFF",
+                      border: "1.5px solid #F87171",
+                      color: "#B91C1C",
+                      fontWeight: 700,
+                      fontSize: "12px",
+                      padding: "5px 12px",
+                      borderRadius: "8px",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "5px",
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.06)",
+                    }}
+                  >
+                    <span>&darr;</span> {item.label}: {item.msg}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
             
             {/* ========================================== */}
@@ -489,13 +622,22 @@ export default function RegisterPage() {
                     name="fullName"
                     type="text"
                     className={`form-control${errors.fullName ? " error" : ""}`}
+                    style={{
+                      borderColor: errors.fullName ? "#EF4444" : form.fullName.trim() ? "rgba(16, 185, 129, 0.6)" : undefined,
+                      boxShadow: errors.fullName ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                      background: errors.fullName ? "rgba(239, 68, 68, 0.03)" : undefined,
+                    }}
                     placeholder="Enter your full name"
                     value={form.fullName}
                     onChange={handleChange}
                     autoComplete="name"
                     required
                   />
-                  <FieldError msg={errors.fullName} />
+                  <FieldRequirementBox
+                    error={errors.fullName}
+                    whyRequired="Your official name is required to register project ownership, quotation, and documentation."
+                    isFilled={form.fullName.trim().length > 0}
+                  />
                 </div>
 
                 <div className="form-group">
@@ -524,12 +666,21 @@ export default function RegisterPage() {
                     name="registerNumber"
                     type="text"
                     className={`form-control${errors.registerNumber ? " error" : ""}`}
+                    style={{
+                      borderColor: errors.registerNumber ? "#EF4444" : form.registerNumber.trim() ? "rgba(16, 185, 129, 0.6)" : undefined,
+                      boxShadow: errors.registerNumber ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                      background: errors.registerNumber ? "rgba(239, 68, 68, 0.03)" : undefined,
+                    }}
                     placeholder="e.g. 927621104001"
                     value={form.registerNumber}
                     onChange={handleChange}
                     required
                   />
-                  <FieldError msg={errors.registerNumber} />
+                  <FieldRequirementBox
+                    error={errors.registerNumber}
+                    whyRequired="Academic register or roll number is mandatory for university verification and build tracking."
+                    isFilled={form.registerNumber.trim().length > 0}
+                  />
                 </div>
 
                 <div className="form-group">
@@ -541,13 +692,22 @@ export default function RegisterPage() {
                     name="phone"
                     type="tel"
                     className={`form-control${errors.phone ? " error" : ""}`}
+                    style={{
+                      borderColor: errors.phone ? "#EF4444" : form.phone.replace(/[^\d]/g, "").length >= 10 ? "rgba(16, 185, 129, 0.6)" : undefined,
+                      boxShadow: errors.phone ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                      background: errors.phone ? "rgba(239, 68, 68, 0.03)" : undefined,
+                    }}
                     placeholder="10-digit mobile number"
                     value={form.phone}
                     onChange={handleChange}
                     autoComplete="tel"
                     required
                   />
-                  <FieldError msg={errors.phone} />
+                  <FieldRequirementBox
+                    error={errors.phone}
+                    whyRequired="10-digit phone number is required so our engineering officers can call/WhatsApp you regarding project hardware."
+                    isFilled={form.phone.replace(/[^\d]/g, "").length >= 10}
+                  />
                 </div>
               </div>
 
@@ -560,13 +720,22 @@ export default function RegisterPage() {
                   name="email"
                   type="email"
                   className={`form-control${errors.email ? " error" : ""}`}
+                  style={{
+                    borderColor: errors.email ? "#EF4444" : /\S+@\S+\.\S+/.test(form.email) ? "rgba(16, 185, 129, 0.6)" : undefined,
+                    boxShadow: errors.email ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                    background: errors.email ? "rgba(239, 68, 68, 0.03)" : undefined,
+                  }}
                   placeholder="Primary email for project updates"
                   value={form.email}
                   onChange={handleChange}
                   autoComplete="email"
                   required
                 />
-                <FieldError msg={errors.email} />
+                <FieldRequirementBox
+                  error={errors.email}
+                  whyRequired="Official idea approval notice and student portal access will be sent directly to this email."
+                  isFilled={/\S+@\S+\.\S+/.test(form.email)}
+                />
               </div>
 
               <div className="form-grid-2">
@@ -614,12 +783,17 @@ export default function RegisterPage() {
                       name="password"
                       type={showPw ? "text" : "password"}
                       className={`form-control${errors.password ? " error" : ""}`}
+                      style={{
+                        paddingRight: "2.5rem",
+                        borderColor: errors.password ? "#EF4444" : form.password.length >= 6 ? "rgba(16, 185, 129, 0.6)" : undefined,
+                        boxShadow: errors.password ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                        background: errors.password ? "rgba(239, 68, 68, 0.03)" : undefined,
+                      }}
                       placeholder="Min. 6 characters"
                       value={form.password}
                       onChange={handleChange}
                       autoComplete="new-password"
                       required
-                      style={{ paddingRight: "2.5rem" }}
                     />
                     <button
                       type="button"
@@ -634,7 +808,11 @@ export default function RegisterPage() {
                       {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
-                  <FieldError msg={errors.password} />
+                  <FieldRequirementBox
+                    error={errors.password}
+                    whyRequired="Minimum 6 characters required to secure your account once your project is approved."
+                    isFilled={form.password.length >= 6}
+                  />
                 </div>
 
                 <div className="form-group">
@@ -646,13 +824,22 @@ export default function RegisterPage() {
                     name="confirmPassword"
                     type={showPw ? "text" : "password"}
                     className={`form-control${errors.confirmPassword ? " error" : ""}`}
+                    style={{
+                      borderColor: errors.confirmPassword ? "#EF4444" : (form.confirmPassword && form.password === form.confirmPassword) ? "rgba(16, 185, 129, 0.6)" : undefined,
+                      boxShadow: errors.confirmPassword ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                      background: errors.confirmPassword ? "rgba(239, 68, 68, 0.03)" : undefined,
+                    }}
                     placeholder="Re-enter password"
                     value={form.confirmPassword}
                     onChange={handleChange}
                     autoComplete="new-password"
                     required
                   />
-                  <FieldError msg={errors.confirmPassword} />
+                  <FieldRequirementBox
+                    error={errors.confirmPassword}
+                    whyRequired="Must match the password entered above to avoid account lockout."
+                    isFilled={Boolean(form.confirmPassword && form.password === form.confirmPassword)}
+                  />
                 </div>
               </div>
             </div>
@@ -675,12 +862,21 @@ export default function RegisterPage() {
                   name="projectTitle"
                   type="text"
                   className={`form-control${errors.projectTitle ? " error" : ""}`}
+                  style={{
+                    borderColor: errors.projectTitle ? "#EF4444" : form.projectTitle.trim() ? "rgba(16, 185, 129, 0.6)" : undefined,
+                    boxShadow: errors.projectTitle ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                    background: errors.projectTitle ? "rgba(239, 68, 68, 0.03)" : undefined,
+                  }}
                   placeholder="e.g. IoT Smart EV Battery Management System"
                   value={form.projectTitle}
                   onChange={handleChange}
                   required
                 />
-                <FieldError msg={errors.projectTitle} />
+                <FieldRequirementBox
+                  error={errors.projectTitle}
+                  whyRequired="A clear project title is required to categorize and review your technical scope."
+                  isFilled={form.projectTitle.trim().length > 0}
+                />
               </div>
 
               <div className="form-group">
@@ -691,13 +887,22 @@ export default function RegisterPage() {
                   id="reg-shortDescription"
                   name="shortDescription"
                   className={`form-control${errors.shortDescription ? " error" : ""}`}
+                  style={{
+                    borderColor: errors.shortDescription ? "#EF4444" : form.shortDescription.trim() ? "rgba(16, 185, 129, 0.6)" : undefined,
+                    boxShadow: errors.shortDescription ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                    background: errors.shortDescription ? "rgba(239, 68, 68, 0.03)" : undefined,
+                  }}
                   placeholder="Briefly explain the problem you are solving, core objectives, and expected output..."
                   value={form.shortDescription}
                   onChange={handleChange}
                   rows={3}
                   required
                 />
-                <FieldError msg={errors.shortDescription} />
+                <FieldRequirementBox
+                  error={errors.shortDescription}
+                  whyRequired="Briefly describe what problem your project solves and what output you expect."
+                  isFilled={form.shortDescription.trim().length > 0}
+                />
               </div>
 
               <div className="form-group">
@@ -708,13 +913,22 @@ export default function RegisterPage() {
                   id="reg-requirements"
                   name="requirements"
                   className={`form-control${errors.requirements ? " error" : ""}`}
+                  style={{
+                    borderColor: errors.requirements ? "#EF4444" : form.requirements.trim() ? "rgba(16, 185, 129, 0.6)" : undefined,
+                    boxShadow: errors.requirements ? "0 0 0 3px rgba(239, 68, 68, 0.18)" : undefined,
+                    background: errors.requirements ? "rgba(239, 68, 68, 0.03)" : undefined,
+                  }}
                   placeholder="List hardware, sensors, microcontrollers (ESP32/Arduino), software tech stack, libraries..."
                   value={form.requirements}
                   onChange={handleChange}
                   rows={3}
                   required
                 />
-                <FieldError msg={errors.requirements} />
+                <FieldRequirementBox
+                  error={errors.requirements}
+                  whyRequired="Please specify sensors, microcontrollers, or software libraries required for your build."
+                  isFilled={form.requirements.trim().length > 0}
+                />
               </div>
 
               {/* Deliverables & Engineering Services Multi-Select */}
@@ -731,12 +945,11 @@ export default function RegisterPage() {
                   Choose whether you need a physical hardware build, custom PCB design layout, CAE simulation, software, or academic documentation.
                 </p>
 
-                {errors.services && (
-                  <div className="alert alert-error" style={{ marginBottom: "var(--space-3)", padding: "8px 12px", fontSize: "12px" }}>
-                    <AlertCircle size={14} />
-                    <span>{errors.services}</span>
-                  </div>
-                )}
+                <FieldRequirementBox
+                  error={errors.services}
+                  whyRequired="Select at least one engineering deliverable so our team knows what to build."
+                  isFilled={selectedServices.length > 0}
+                />
 
                 <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "10px" }}>
                   {AVAILABLE_SERVICES.map((s) => {

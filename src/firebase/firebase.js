@@ -16,13 +16,21 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Secondary Auth instance helper for isolated account creation
+// Secondary Firebase instance helper for isolated account creation
 // (Prevents auto-login on primary auth, so users/applicants don't get routed away while viewing confirmation screens)
-export function getSecondaryAuth() {
+export function getSecondaryFirebase() {
   const secondaryAppName = "projifyraSecondaryAuth";
   const existingApp = getApps().find((a) => a.name === secondaryAppName);
   const secondaryApp = existingApp || initializeApp(FIREBASE_CONFIG, secondaryAppName);
-  return getAuth(secondaryApp);
+  return {
+    app: secondaryApp,
+    auth: getAuth(secondaryApp),
+    db: getFirestore(secondaryApp),
+  };
+}
+
+export function getSecondaryAuth() {
+  return getSecondaryFirebase().auth;
 }
 
 export default app;

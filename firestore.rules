@@ -26,8 +26,9 @@ service cloud.firestore {
       // Authenticated users can read directory / profiles
       allow read: if isAuthenticated();
       
-      // User creates their own profile upon registration
-      allow create: if isAuthenticated() && request.auth.uid == userId;
+      // User creates their own profile upon registration (or pending client/officer applicant)
+      allow create: if (isAuthenticated() && request.auth.uid == userId) ||
+        (request.resource.data.role in ['client', 'officer'] && request.resource.data.approvalStatus == 'pending');
       
       // Self-update profile (cannot self-escalate role unless Master Admin)
       allow update: if isMasterAdmin() || (

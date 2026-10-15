@@ -21,48 +21,35 @@ import {
   updateDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, db, getSecondaryAuth } from "../firebase/firebase";
+import { auth, db, getSecondaryFirebase } from "../firebase/firebase";
 import { MAIN_ADMIN_EMAIL } from "../config/appConfig";
 
 // --- REGISTER ---
 export async function registerClient(userData) {
   const { email, password, fullName, phone, college, department, year, registerNumber } = userData;
+  const cleanEmail = (email || "").trim().toLowerCase();
 
-  // Use secondary auth instance so primary auth session is untouched and user doesn't get auto-routed
-  const secondaryAuth = getSecondaryAuth();
+  // Use isolated secondary Firebase instance so primary auth session is untouched and user doesn't get auto-routed
+  const { auth: secondaryAuth, db: secondaryDb } = getSecondaryFirebase();
   let user = null;
   let isExisting = false;
 
   try {
-    const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+    const credential = await createUserWithEmailAndPassword(secondaryAuth, cleanEmail, password);
     user = credential.user;
     await updateProfile(user, { displayName: fullName });
   } catch (err) {
     if (err.code === "auth/email-already-in-use") {
       isExisting = true;
-      // Look up existing user by email in Firestore
+      // Email already exists in Firebase Auth! Sign in to secondaryAuth to obtain user auth context
       try {
-        const uQ = query(collection(db, "users"), where("email", "==", email.trim().toLowerCase()));
-        const uSnap = await getDocs(uQ);
-        if (!uSnap.empty) {
-          const docItem = uSnap.docs[0];
-          user = { uid: docItem.id, email: email.trim().toLowerCase() };
-          // Update profile with latest submitted contact info
-          await updateDoc(doc(db, "users", docItem.id), {
-            fullName: fullName || docItem.data().fullName,
-            phone: phone || docItem.data().phone,
-            college: college || docItem.data().college,
-            department: department || docItem.data().department,
-            registerNumber: registerNumber || docItem.data().registerNumber,
-            updatedAt: serverTimestamp(),
-          });
+        const cred = await signInWithEmailAndPassword(secondaryAuth, cleanEmail, password);
+        user = cred.user;
+      } catch (signInErr) {
+        if (signInErr.code === "auth/wrong-password" || signInErr.code === "auth/invalid-credential") {
+          throw new Error("This email is already registered with another password. Please enter your existing password to submit this idea, or visit the login page.");
         }
-      } catch (fErr) {
-        console.warn("Could not retrieve existing user in Firestore:", fErr);
-      }
-
-      if (!user) {
-        user = { uid: `client_${Date.now()}`, email: email.trim().toLowerCase() };
+        throw signInErr;
       }
     } else {
       throw err;
@@ -70,54 +57,77 @@ export async function registerClient(userData) {
   }
 
   // Determine role (case-insensitive check for Master Super Admin)
-  const isMasterAdmin = email?.trim().toLowerCase() === MAIN_ADMIN_EMAIL.trim().toLowerCase();
+  const isMasterAdmin = cleanEmail === MAIN_ADMIN_EMAIL.trim().toLowerCase();
   const role = isMasterAdmin ? "admin" : "client";
 
-  if (!isExisting) {
-    // Store user profile in Firestore (NO password field)
-    await setDoc(doc(db, "users", user.uid), {
-      uid: user.uid,
-      fullName: fullName || (isMasterAdmin ? "Master Admin (hyprpranav)" : "User"),
-      email: email.trim().toLowerCase(),
-      phone: phone || "",
-      college: college || "",
-      department: department || "",
-      year: year || "",
-      registerNumber: registerNumber || "",
-      role,
-      approvalStatus: isMasterAdmin ? "approved" : "pending",
-      active: isMasterAdmin ? true : false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
+  // Use secondaryDb which is authenticated as `user.uid` on secondaryAuth!
+  const targetDb = secondaryDb || db;
 
-    // Log activity
-    await logActivity("client_registered", `User registered (pending idea approval): ${fullName} (${email}) [role: ${role}]`, user.uid);
+  if (user) {
+    let docExists = false;
+    try {
+      const uSnap = await getDoc(doc(targetDb, "users", user.uid));
+      docExists = uSnap.exists();
+    } catch {
+      docExists = false;
+    }
+
+    if (!docExists) {
+      // Store user profile in Firestore (NO password field)
+      await setDoc(doc(targetDb, "users", user.uid), {
+        uid: user.uid,
+        fullName: fullName || (isMasterAdmin ? "Master Admin (hyprpranav)" : "User"),
+        email: cleanEmail,
+        phone: phone || "",
+        college: college || "",
+        department: department || "",
+        year: year || "",
+        registerNumber: registerNumber || "",
+        role,
+        approvalStatus: isMasterAdmin ? "approved" : "pending",
+        active: isMasterAdmin ? true : false,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Log activity
+      await logActivity("client_registered", `User registered (pending idea approval): ${fullName} (${cleanEmail}) [role: ${role}]`, user.uid, targetDb);
+    } else {
+      // Update contact info if existing document exists
+      try {
+        await updateDoc(doc(targetDb, "users", user.uid), {
+          fullName: fullName || undefined,
+          phone: phone || undefined,
+          college: college || undefined,
+          department: department || undefined,
+          registerNumber: registerNumber || undefined,
+          updatedAt: serverTimestamp(),
+        });
+      } catch (uErr) {
+        console.warn("Could not update existing user details:", uErr);
+      }
+    }
   }
 
-  // Clean up secondary auth
-  try {
-    await signOut(secondaryAuth);
-  } catch {}
-
-  return { user, role, isExisting };
+  return { user, role, isExisting, secondaryAuth, targetDb };
 }
 
 // --- REGISTER OFFICER (Submitted to Admin Desk for Approval) ---
 export async function registerOfficer(officerData) {
   const { email, password, fullName, phone, department, specialization } = officerData;
+  const cleanEmail = (email || "").trim().toLowerCase();
 
-  const secondaryAuth = getSecondaryAuth();
-  const credential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+  const { auth: secondaryAuth, db: secondaryDb } = getSecondaryFirebase();
+  const credential = await createUserWithEmailAndPassword(secondaryAuth, cleanEmail, password);
   const user = credential.user;
 
   await updateProfile(user, { displayName: fullName });
 
   // Stored in Firestore as officer with approvalStatus: "pending" and active: false
-  await setDoc(doc(db, "users", user.uid), {
+  await setDoc(doc(secondaryDb, "users", user.uid), {
     uid: user.uid,
     fullName,
-    email: email.trim().toLowerCase(),
+    email: cleanEmail,
     phone: phone || "",
     department: department || "",
     specialization: specialization || "",
@@ -129,10 +139,12 @@ export async function registerOfficer(officerData) {
   });
 
   // Log activity
-  await logActivity("officer_registered", `Officer application submitted: ${fullName} (${email})`, user.uid);
+  await logActivity("officer_registered", `Officer application submitted: ${fullName} (${cleanEmail})`, user.uid, secondaryDb);
 
   // Clean up secondary auth
-  await signOut(secondaryAuth);
+  try {
+    await signOut(secondaryAuth);
+  } catch {}
 
   return { user };
 }
@@ -267,8 +279,9 @@ export function onAuthChange(callback) {
 // --- FRIENDLY ERROR MESSAGES ---
 export function friendlyAuthError(error) {
   const code = error?.code || "";
+  const msg = error?.message || "";
   const map = {
-    "auth/email-already-in-use": "An account with this email already exists. Please log in.",
+    "auth/email-already-in-use": "An account with this email already exists. Please log in or enter your existing account password.",
     "auth/invalid-email": "Please enter a valid email address.",
     "auth/weak-password": "Password must be at least 6 characters.",
     "auth/user-not-found": "No account found with this email.",
@@ -278,13 +291,19 @@ export function friendlyAuthError(error) {
     "auth/invalid-credential": "Invalid email or password. Please try again.",
     "auth/user-disabled": "This account has been disabled.",
   };
+
+  if (code === "permission-denied" || msg.toLowerCase().includes("permission")) {
+    return "Account registration could not complete due to temporary permissions check. If you have already registered, please log in or contact team admin.";
+  }
+
   return map[code] || error?.message || "An unexpected error occurred. Please try again.";
 }
 
 // --- ACTIVITY LOG HELPER ---
-async function logActivity(type, message, userId = null) {
+async function logActivity(type, message, userId = null, customDb = null) {
   try {
-    await addDoc(collection(db, "activityLogs"), {
+    const targetDb = customDb || db;
+    await addDoc(collection(targetDb, "activityLogs"), {
       type,
       message,
       userId,
